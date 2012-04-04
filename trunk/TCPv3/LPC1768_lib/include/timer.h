@@ -10,5 +10,7 @@
 
 void DelayTimer_Config(void);
 void delay_ms(uint16_t delay_ms);
+void ConfigTimer1(void);
+uint32_t GetTimTimer1(void);
 
 #endif /* TIMER_H_ */

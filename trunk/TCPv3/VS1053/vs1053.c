@@ -14,7 +14,7 @@
 
 #include "EMAC.h"
 
-//extern OS_MutexID SPI0_Mutex;
+//extern xSemaphoreHandle xSPI1_Mutex
 
 //#define VS_BUFSIZE		16*1024
 
@@ -1273,7 +1273,7 @@ void vs_init(void){
 }
 
 void EINT3_IRQHandler(void){
-	uint32_t a, b, c, d;
+	uint32_t a, b;//, c, d;
 	LPC_GPIOINT->IO2IntClr |= (1<<10);	//kasuje flagę prerwania
 
 	a=LPC_EMAC->RxProduceIndex;
