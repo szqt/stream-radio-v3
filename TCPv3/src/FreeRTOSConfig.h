@@ -90,13 +90,23 @@
 #define configUSE_16_BIT_TICKS			0
 #define configIDLE_SHOULD_YIELD			1
 #define configUSE_MUTEXES				1
-#define configQUEUE_REGISTRY_SIZE		0
-#define configGENERATE_RUN_TIME_STATS	0
+#define configQUEUE_REGISTRY_SIZE		10
+#define configGENERATE_RUN_TIME_STATS	1
 #define configCHECK_FOR_STACK_OVERFLOW	1
 #define configUSE_RECURSIVE_MUTEXES		0
 #define configUSE_MALLOC_FAILED_HOOK	0
 #define configUSE_APPLICATION_TASK_TAG	0
 #define configUSE_COUNTING_SEMAPHORES	1
+
+extern void ConfigTimer1(void);
+extern uint32_t GetTimTimer1(void);
+
+#if configGENERATE_RUN_TIME_STATS != 0
+
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()    ConfigTimer1()
+#define portGET_RUN_TIME_COUNTER_VALUE()            GetTimTimer1()
+
+#endif
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 		0

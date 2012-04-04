@@ -99,6 +99,15 @@ void  UART_PrintStr (char * str)
    }
 }
 
+void  UART_PrintBuf (char * str, uint16_t len){
+
+	while(len--){
+		UART_PrintChar(*str++);
+	}
+	UART_PrintChar('\r');
+	UART_PrintChar('\n');
+}
+
 
 /*void  UART_Printf (const  uint8_t *format, ...)
 {

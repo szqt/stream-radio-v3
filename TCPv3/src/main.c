@@ -4,6 +4,7 @@
 #include "stdint.h"
 #include "stdio.h"
 #include <stdlib.h>
+#include <string.h>
 
 #include "system_lpc17xx.h"
 
@@ -95,7 +96,7 @@ int main()
 #endif
 
 	IPradio_init();
-	HTTP_init();
+//	HTTP_init();
 	xSPI0_Mutex = xSemaphoreCreateMutex();
     if(xSPI0_Mutex == NULL){
         // The mutex was not created.
@@ -104,8 +105,8 @@ int main()
     if(xSPI1_Mutex == NULL){
         // The mutex was not created.
     }
-	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 4, &xVsTskHandle );
-	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IamLiveTsk", 100, NULL, 3, &xIamLiveHandle );
+	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 200, NULL, 4, &xVsTskHandle );
+	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IaLTsk", 400, NULL, 3, &xIamLiveHandle );
 
 	vTaskSuspend(xVsTskHandle);
 
@@ -149,8 +150,6 @@ void eth_lwip_init(void)
 	}else{
 		// The semaphore was not created
 	}
-//	semDhcpCmpl = CoCreateSem(0, 1, 1);			/* Utwórz semafor wskazujący pobranie adresu IP */
-//	semDhcpCmpl_2 = CoCreateSem(0, 1, 1);
 #endif
 
 }
@@ -173,24 +172,28 @@ void vDHCP_TimerCallback(xTimerHandle pxTimer){
 //		ipadres[3]=0xff&(lpc17xx_netif->ip_addr.addr);	// do lewej
 		LED_On(5);
 		xSemaphoreGive(xDhcpCmplSemaphore_1);
-		xSemaphoreGive(xDhcpCmplSemaphore_2);
+//		xSemaphoreGive(xDhcpCmplSemaphore_2);
 		dhcpflag = 1;
 	}
 }
 #endif
 
 void vIamLiveTask (void * pvParameters){
-	static uint8_t last_vol = 0;
-	uint8_t new_vol;
+//	static uint8_t last_vol = 0;
+//	uint8_t new_vol;
 //	uint8_t licznik=0;
+	char buf[120];
 	while(1){
 
-		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
-		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
-			vs_set_volume(new_vol);
-			last_vol = new_vol;
-			LED_Toggle(3);
-		}
+//		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
+//		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
+//			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
+//				vs_set_volume(new_vol);
+//				xSemaphoreGive(xSPI0_Mutex);
+//			}
+//			last_vol = new_vol;
+//			LED_Toggle(3);
+//		}
 //		licznik++;
 //		if(licznik >=40){
 //			UART_PrintNum(RAM_buflen());
@@ -198,15 +201,20 @@ void vIamLiveTask (void * pvParameters){
 //			licznik = 0;
 //		}
 
+		vTaskGetRunTimeStats((signed char*)buf);
+		UART_PrintBuf (buf, strlen(buf));
 		LED_Toggle(2);
-		vTaskDelay(100/portTICK_RATE_MS);
+		vTaskDelay(4000/portTICK_RATE_MS);
 //		CoTickDelay(100);
 	}
 }
 
 void vVsTask(void * pvParameters) {
 	while (1) {
-		VS_feed();
+		if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
+			VS_feed();
+			xSemaphoreGive(xSPI0_Mutex);
+		}
 		vTaskDelay(15/portTICK_RATE_MS);
 //		CoTickDelay(15);
 	}
