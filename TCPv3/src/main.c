@@ -49,6 +49,9 @@ void vDHCP_TimerCallback(xTimerHandle pxTimer);
 
 xTaskHandle xVsTskHandle;
 xTaskHandle xIamLiveHandle;
+extern xTaskHandle xShoutcastTaskHandle;
+extern xTaskHandle xETHTsk;
+extern sys_thread_t xLWIPTskHandler;
 //OS_STK IamLive_stk[100];
 //OS_STK vs_task_stk[100];
 //OS_TID VS_TSK_ID;
@@ -78,6 +81,7 @@ struct netif *loop_netif;
 
 int main()
 {
+	uint8_t k, l;
 	DelayTimer_Config();
 	LED_Config();
 	BUTTON_Config();
@@ -86,6 +90,9 @@ int main()
 	vs_init();
 	RAM_init();
 	RAM_test();
+	for(k=5; k>0; k--){
+		l=2/(k-1);
+	}
 
 	eth_lwip_init();
 #if DHCP_ON
@@ -183,6 +190,7 @@ void vIamLiveTask (void * pvParameters){
 //	uint8_t new_vol;
 //	uint8_t licznik=0;
 	char buf[120];
+	unsigned portBASE_TYPE Shoutcast, Vs, IamLive, TCP, ETHinp;
 	while(1){
 
 //		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
@@ -203,6 +211,36 @@ void vIamLiveTask (void * pvParameters){
 
 		vTaskGetRunTimeStats((signed char*)buf);
 		UART_PrintBuf (buf, strlen(buf));
+
+		IamLive = uxTaskGetStackHighWaterMark(NULL);
+		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
+		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
+		TCP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
+		ETHinp = uxTaskGetStackHighWaterMark(xETHTsk);
+		UART_PrintStr("ILive: ");
+		UART_PrintNum(IamLive);
+		UART_PrintStr("\r\n");
+
+		UART_PrintStr("shout: ");
+		UART_PrintNum(Shoutcast);
+		UART_PrintStr("\r\n");
+
+		UART_PrintStr("VS: ");
+		UART_PrintNum(Vs);
+		UART_PrintStr("\r\n");
+
+		UART_PrintStr("LWIP: ");
+		UART_PrintNum(TCP);
+		UART_PrintStr("\r\n");
+
+		UART_PrintStr("LWIP: ");
+		UART_PrintNum(TCP);
+		UART_PrintStr("\r\n");
+
+		UART_PrintStr("ETH: ");
+		UART_PrintNum(ETHinp);
+		UART_PrintStr("\r\n");
+
 		LED_Toggle(2);
 		vTaskDelay(4000/portTICK_RATE_MS);
 //		CoTickDelay(100);

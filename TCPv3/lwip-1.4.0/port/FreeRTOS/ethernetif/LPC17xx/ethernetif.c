@@ -34,6 +34,7 @@
 
 xSemaphoreHandle semEthTx;
 xSemaphoreHandle semEthRx;
+xTaskHandle xETHTsk;
 
 #define sizeEthif  400
 #define prioEthif   (TCPIP_THREAD_PRIO-1)
@@ -90,7 +91,7 @@ low_level_init(struct netif *netif)
     LWIP_DEBUGF(NETIF_DEBUG,("Semaphore for ETH recive created failed !\n\r"));
   };
 
-  result = xTaskCreate( ethernetif_input, ( signed portCHAR * ) "Eht_inp", sizeEthif, (void *)netif, prioEthif, NULL );
+  result = xTaskCreate( ethernetif_input, ( signed portCHAR * ) "Eht_inp", sizeEthif, (void *)netif, prioEthif, &xETHTsk );
   
   if(result != pdPASS) {
     LWIP_DEBUGF(NETIF_DEBUG,("Task for ETH recive created failed !\n\r "));
