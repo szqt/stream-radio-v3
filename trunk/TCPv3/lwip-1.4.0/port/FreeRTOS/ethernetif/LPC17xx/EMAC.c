@@ -273,7 +273,7 @@ void Init_EMAC(void)
   /* Enable receive and transmit mode of MAC Ethernet core */
   EMAC->Command  |= (CR_RX_EN | CR_TX_EN);
   EMAC->MAC1     |= MAC1_REC_EN;
-  NVIC_SetPriority(ENET_IRQn, 5);
+  NVIC_SetPriority(ENET_IRQn, 6);
   NVIC_EnableIRQ(ENET_IRQn);
 }
 

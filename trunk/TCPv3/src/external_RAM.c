@@ -203,8 +203,111 @@ void RAM_test(void) {
 	}
 	CS_RAM2_HIGH();
 
+	CS_RAM2_LOW();
+	DMA_Config();
+	while(!(LPC_GPDMA->DMACIntStat & 0x01)); //czekaj na koniec transferu DMA
+	while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+	CS_RAM2_HIGH();
+
+	//wyczyć bufor RX
+
+	while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )
+	{
+		buf[0] = LPC_SSP1->DR;
+	}
+
+	CS_RAM2_LOW();
+	SPI1_Write(READ);
+	SPI1_Write(0x00);
+	SPI1_Write(0x00);
+	for (cnt = 0; cnt < 13; cnt++) {
+		buf[cnt] = SPI1_Write(DUMMY_BYTE);
+	}
+	CS_RAM2_HIGH();
 }
 
+void DMA_Config(void){
+	uint8_t dane[] = {0x02, 0x00, 0x00, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5};
+	uint8_t TransferSize = 16;
+	LPC_SC->PCONP |= (1<<29); 					/* Power on DMA module */
+	LPC_SSP1->DMACR |=(1<<1);					/* Enable DMA for the SSP1 transmit FIFO */
+	LPC_GPDMA->DMACConfig |= (1<<0);			/* Enable DMA Controller */
+
+	LPC_GPDMA->DMACIntErrClr |= 0xFF;
+	LPC_GPDMA->DMACIntTCClear |= 0xFF;
+
+	LPC_GPDMACH0->DMACCLLI = 0;								/* Clear Linked List - don't use */
+	LPC_GPDMACH0->DMACCSrcAddr = (uint32_t)&dane[0];			/* Set source address */
+	LPC_GPDMACH0->DMACCDestAddr = (uint32_t)&LPC_SSP1->DR;	/* Set destination address */
+	LPC_GPDMACH0->DMACCControl = TransferSize 			/* Set transfer size */
+								| (1<<12)				/* Source burst size - 4 */
+								| (1<<15)				/* Destination burst size - 4 */
+								| (0<<18)				/* Source transfer width - Byte (8-bit) */
+								| (0<<21)				/* Destination transfer width - Byte (8-bit) */
+								| (1<<26)				/* Source address is incremented */
+								| (1<<31);				/* Enable Interrupt */
+
+	LPC_GPDMACH0->DMACCConfig |= (2<<6)		/* SSP1 Tx as DMA request peripheral */
+							|(1<<11)		/* Memory to peripheral transfer */
+							|(1<<14)		/* Enable error interrupt */
+							|(1<<15);		/* Enable interrupt */
+
+	LPC_GPDMACH0->DMACCConfig |= 1;	/* Enable DMA channel */
+//	NVIC_SetPriority(DMA_IRQn, 5);
+//	NVIC_EnableIRQ(DMA_IRQn);
+
+	LPC_GPDMA->DMACSoftSReq |= (1<<2);		/* Transfer request */
+
+}
+void
+void DMA_IRQHandler(void){
+	uint32_t status;
+	LPC_GPDMACH0->DMACCConfig &= ~(1<0);	/* Disable DMA channel 0 */
+
+	status = LPC_GPDMA->DMACIntTCStat;
+	if((status & 0xFF) > 0){
+		LPC_GPDMA->DMACIntTCClear = status;
+		//terminal count interrupt request
+	}
+	status = LPC_GPDMA->DMACRawIntErrStat;
+	if ((status & 0xFF)>0){
+		LPC_GPDMA->DMACIntErrClr = status;
+		//error interrupt request
+	}
+
+}
+void RAM_bufputs(char *s, uint16_t len) {
+	uint32_t head;
+	if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
+		head = RAM_bufhead;
+
+		if(head<RAM_CHIPSIZE){
+			if(RAM_CHIPSIZE-head >= len){
+				//transfer
+			}else{
+				//transfer do dwóch pamieci
+			}
+		}else if ((RAM_CHIPSIZE <= head) && (head < 2 * RAM_CHIPSIZE)) {
+			if(2*RAM_CHIPSIZE-head >= len){
+				//transfer
+			}else{
+
+			}
+		}else if ((2 * RAM_CHIPSIZE <= head) && (head < 3 * RAM_CHIPSIZE)){
+			if(3*RAM_CHIPSIZE-head >= len){
+				//transfer
+			}else{
+
+			}
+		}else if (3 * RAM_CHIPSIZE <= head){
+			if(4*RAM_CHIPSIZE-head >= len){
+				//transfer
+			}else{
+
+			}
+		}
+	}
+}
 /**
  * Puts samples to RAM buffer
  *

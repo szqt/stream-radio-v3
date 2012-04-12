@@ -1273,13 +1273,14 @@ void vs_init(void){
 }
 
 void EINT3_IRQHandler(void){
-	uint32_t a, b;//, c, d;
+	uint32_t a, b, c, d, e, f;
 	LPC_GPIOINT->IO2IntClr |= (1<<10);	//kasuje flagę prerwania
-
-	a=LPC_EMAC->RxProduceIndex;
-	b=LPC_EMAC->RxConsumeIndex;
-//	LPC_EMAC->RxConsumeIndex=a;
-	vs_init();
+	a = LPC_GPDMA->DMACSoftSReq;
+	b = LPC_GPDMACH0->DMACCControl;
+	c = LPC_GPDMA->DMACIntStat;
+	d = LPC_GPDMA->DMACConfig;
+	e =  LPC_GPDMACH0->DMACCConfig;
+	f = LPC_GPDMA->DMACEnbldChns;
 }
 
 /**
