@@ -43,10 +43,11 @@ struct{
 	char Name[STATION_NAME_MAX_LEN];	/* pole nazwy stacji */
 
 }RadioInf;
-char Title[TITLE_MAX_LEN];
+char Title[TITLE_MAX_LEN];\
+xTaskHandle xShoutcastTaskHandle;
 unsigned char IPradio_init(void)
 {
-	xTaskHandle xShoutcastTaskHandle;
+//	xTaskHandle xShoutcastTaskHandle;
 
 	xShoutcastTaskHandle = sys_thread_new("SCstTsk",
                        shoutcast,

@@ -278,7 +278,7 @@
 //
 //*****************************************************************************
 #define TCPIP_THREAD_NAME              "tcpipTsk"
-#define TCPIP_THREAD_STACKSIZE          300
+#define TCPIP_THREAD_STACKSIZE          400
 #define TCPIP_THREAD_PRIO               7
 
 /**

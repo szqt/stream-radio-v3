@@ -217,34 +217,35 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 //	CoEnterMutexSection(SPI_Mutex);
 	if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
+		while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 		head = RAM_bufhead;
 
 		if (head < RAM_CHIPSIZE) { // zapis do pierwszej pamięci
 			CS_RAM1_LOW();
-			SPI1_Write(WRITE);
-			SPI1_Write(0xFF & (head >> 8));
-			SPI1_Write(0xFF & head);
+			SPI1_FIFO_write(WRITE);
+			SPI1_FIFO_write(0xFF & (head >> 8));
+			SPI1_FIFO_write(0xFF & head);
 
 			while ((len != 0) && (head < RAM_CHIPSIZE)) {
-				SPI1_Write(*s++);
+				SPI1_FIFO_write(*s++);
 				head++;
 				len--;
 			}
-			//		while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 			CS_RAM1_HIGH();
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do drugiej pamięci
 				CS_RAM2_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
-				//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM2_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -255,16 +256,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
 				CS_RAM3_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 2 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
-				//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM3_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -275,16 +276,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
 				CS_RAM4_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 3 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
-				//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM4_HIGH();
 
 				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
@@ -299,16 +300,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek pierwszej pamieci
 				CS_RAM1_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & (head >> 8));
-				SPI1_Write(0xFF & head);
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & (head >> 8));
+				SPI1_FIFO_write(0xFF & head);
 
 				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
-				//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM1_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -320,28 +321,30 @@ void RAM_bufputs(char *s, uint16_t len) {
 		} else if ((RAM_CHIPSIZE <= head) && (head < 2 * RAM_CHIPSIZE)) { // jestemy w obszarze 2 pamięci
 
 			CS_RAM2_LOW(); // zapis do 2 pamięci
-			SPI1_Write(WRITE);
-			SPI1_Write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); //
-			SPI1_Write(0xFF & (head - RAM_CHIPSIZE));
+			SPI1_FIFO_write(WRITE);
+			SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); //
+			SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
 
 			while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-				SPI1_Write(*s++);
+				SPI1_FIFO_write(*s++);
 				head++;
 				len--;
 			}
+			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 			CS_RAM2_HIGH();
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
 				CS_RAM3_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 2 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM3_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -352,15 +355,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
 				CS_RAM4_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 3 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM4_HIGH();
 
 				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
@@ -375,15 +379,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek 1 pamieci
 				CS_RAM1_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & (head >> 8));
-				SPI1_Write(0xFF & head);
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & (head >> 8));
+				SPI1_FIFO_write(0xFF & head);
 
 				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM1_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -394,15 +399,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 2 pamięci
 				CS_RAM2_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM2_HIGH();
 				/* tutaj program nie powinien dojsc */
 				if (head >= RAM_BUFSIZE) //jezeli powodem wyjcia w while było niespełnienie
@@ -416,28 +422,30 @@ void RAM_bufputs(char *s, uint16_t len) {
 		} else if ((2 * RAM_CHIPSIZE <= head) && (head < 3 * RAM_CHIPSIZE)) {
 
 			CS_RAM3_LOW(); // zapis do 3 pamięci
-			SPI1_Write(WRITE);
-			SPI1_Write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-			SPI1_Write(0xFF & (head - 2 * RAM_CHIPSIZE));
+			SPI1_FIFO_write(WRITE);
+			SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+			SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
 
 			while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-				SPI1_Write(*s++);
+				SPI1_FIFO_write(*s++);
 				head++;
 				len--;
 			}
+			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 			CS_RAM3_HIGH();
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
 				CS_RAM4_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 3 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM4_HIGH();
 
 				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
@@ -452,15 +460,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek 1 pamieci
 				CS_RAM1_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & (head >> 8));
-				SPI1_Write(0xFF & head);
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & (head >> 8));
+				SPI1_FIFO_write(0xFF & head);
 
 				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM1_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -471,15 +480,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 2 pamięci
 				CS_RAM2_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM2_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -491,15 +501,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
 
 				CS_RAM3_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 2 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM3_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -511,15 +522,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 		} else if (3 * RAM_CHIPSIZE <= head) {
 
 			CS_RAM4_LOW();
-			SPI1_Write(WRITE);
-			SPI1_Write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-			SPI1_Write(0xFF & (head - 3 * RAM_CHIPSIZE));
+			SPI1_FIFO_write(WRITE);
+			SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+			SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
 
 			while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-				SPI1_Write(*s++);
+				SPI1_FIFO_write(*s++);
 				head++;
 				len--;
 			}
+			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 			CS_RAM4_HIGH();
 
 			if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
@@ -528,15 +540,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 
 			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek 1 pamieci
 				CS_RAM1_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & (head >> 8));
-				SPI1_Write(0xFF & head);
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & (head >> 8));
+				SPI1_FIFO_write(0xFF & head);
 
 				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM1_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -548,15 +561,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 2 pamięci
 
 				CS_RAM2_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM2_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -568,15 +582,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
 
 				CS_RAM3_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 2 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM3_HIGH();
 			} else {
 				RAM_bufhead = head;
@@ -588,15 +603,16 @@ void RAM_bufputs(char *s, uint16_t len) {
 			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
 
 				CS_RAM4_LOW();
-				SPI1_Write(WRITE);
-				SPI1_Write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-				SPI1_Write(0xFF & (head - 3 * RAM_CHIPSIZE));
+				SPI1_FIFO_write(WRITE);
+				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
+				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
 
 				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-					SPI1_Write(*s++);
+					SPI1_FIFO_write(*s++);
 					head++;
 					len--;
 				}
+				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 				CS_RAM4_HIGH();
 
 				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
@@ -625,8 +641,15 @@ void RAM_bufputs(char *s, uint16_t len) {
  */
 void RAM_bufget(uint8_t *buf, uint16_t len) {
 	uint32_t tail;
+	uint8_t dummy;
 
 	if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
+		while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+		while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )			/* Celan Rx FIFO */
+		{
+			dummy = LPC_SSP1->DR;
+		}
+
 		tail = RAM_buftail;
 		if (tail < RAM_CHIPSIZE) { // odczyt 1 pamięci
 			CS_RAM1_LOW();

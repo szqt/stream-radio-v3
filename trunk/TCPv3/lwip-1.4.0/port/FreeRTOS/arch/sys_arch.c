@@ -35,7 +35,6 @@
 // Include OS functionality.
 //
 //*****************************************************************************
-//#include <uEZ.h>
 
 /* ------------------------ System architecture includes ----------------------------- */
 #include "arch/sys_arch.h"

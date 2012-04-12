@@ -22,6 +22,7 @@
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
+#include "list.h"
 #include "ethernetif.h"
 #include "gpio.h"
 
@@ -62,6 +63,9 @@ void ENET_IRQHandler (void)
 		xSemaphoreGiveFromISR( semEthTx, &xHigherPriorityTaskWoken );
 		LED_Toggle(6);
 	}
+  if(xHigherPriorityTaskWoken == pdTRUE){
+	  portYIELD();
+  }
 //  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
