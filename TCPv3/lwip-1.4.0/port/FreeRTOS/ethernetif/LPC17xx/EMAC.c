@@ -66,7 +66,6 @@ void ENET_IRQHandler (void)
   if(xHigherPriorityTaskWoken == pdTRUE){
 	  portYIELD();
   }
-//  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 // Keil: function added to write PHY

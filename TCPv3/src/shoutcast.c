@@ -29,12 +29,9 @@ void shoutcast(void *pdata);
 #define STATION_NAME_MAX_LEN	100
 #define TITLE_MAX_LEN			100
 
-//OS_STK stkScast[sizeScast];
-//extern OS_TID VS_TSK_ID;
-//extern OS_EventID semDhcpCmpl;
 extern xTaskHandle xVsTskHandle;
 extern xSemaphoreHandle xDhcpCmplSemaphore_1;
-
+xSemaphoreHandle xDMAch0_Semaphore;
 //__DATA(RAM2) char mybuf[6144];
 __SECTION(bss,RAM2) char mybuf[6144];
 
@@ -73,27 +70,32 @@ void shoutcast(void *pdata) {
 	char *ptr, *ptr_tmp;
 	int HeaderLen, DataCounter=0;
 	char flaga = 0;
-//	int32_t dropped=0;
-//	uint64_t OStime;
-//	uint32_t dOStime;
 
-	const char string[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+
+//	const char string[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	const char string[] = "GET / HTTP/1.0\r\nHost: 89.149.227.111\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	const char string[] = "GET / HTTP/1.0\r\nHost: 89.238.252.146\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	const char string[] = "GET / HTTP/1.0\r\nHost: 50.117.115.211\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	const char string[] = "GET / HTTP/1.0\r\nHost: 217.74.72.12\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	const char string[] = "GET / HTTP/1.0\r\nHost: 50.7.241.126\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	const char string[] = "GET / HTTP/1.0\r\nHost: 85.17.26.74\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+	const char string[] = "GET / HTTP/1.0\r\nHost: 85.17.26.74\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	const char string[] = "GET / HTTP/1.0\r\nHost: 88.190.234.235\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 
-	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000		RMF AAC+ 48bps
+//	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000		RMF AAC+ 48bps
 //	IP4_ADDR(&ipaddrserv, 89, 149, 227, 111); //port 8050	ZET AAC+ 32bps
 //	IP4_ADDR(&ipaddrserv, 89, 238, 252, 146); //port 7000	EuropaFM AAC+ Romiania 32kbps
 //	IP4_ADDR(&ipaddrserv, 50, 117, 115, 211); //port 80		idobi Radio MP3 128kbps
 //	IP4_ADDR(&ipaddrserv, 217, 74, 72, 12); //port 9002		RMF MAXXX AAC+ 48kbps
 //	IP4_ADDR(&ipaddrserv, 50, 7, 241, 126); //port 80		Alex Jones - Infowars.com MP3 32kbps
-//	IP4_ADDR(&ipaddrserv, 85, 17, 26, 74); //port 80		TechnoBase.FM MP3 128kbps
+	IP4_ADDR(&ipaddrserv, 85, 17, 26, 74); //port 80		TechnoBase.FM MP3 128kbps
 //	IP4_ADDR(&ipaddrserv, 80, 190, 234, 235); //port 80		French Kiss FM MP3 128kbps
+
+	vSemaphoreCreateBinary(xDMAch0_Semaphore);
+	if(xDMAch0_Semaphore != NULL){
+		xSemaphoreTake(xDMAch0_Semaphore, 0);
+	}else{
+		// The semaphore was not created
+	}
 
 	if (xSemaphoreTake(xDhcpCmplSemaphore_1, portMAX_DELAY) == pdTRUE) {
 reconect:
@@ -107,7 +109,7 @@ reconect:
 		}
 		rc1 = netconn_bind(NetConn, NULL, 3250);	//3250		/* Adres IP i port local host'a */
 		UART_PrintStr("netcon binded\r\n");
-		rc2 = netconn_connect(NetConn, &ipaddrserv, 9000);		/* Adres IP i port serwera */
+		rc2 = netconn_connect(NetConn, &ipaddrserv, 80);		/* Adres IP i port serwera */
 		UART_PrintStr("netcon connected\r\n");
 
 		if(rc1 != ERR_OK || rc2 != ERR_OK){

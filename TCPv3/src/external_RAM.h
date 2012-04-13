@@ -75,10 +75,11 @@ void 			SPI1_FIFO_write(uint8_t byte_s);
 void 			SPI1_SetSpeed(uint8_t speed);
 void 			RAM_init(void);
 void 			RAM_test(void);
-void 			RAM_bufputs(char *s, uint16_t len);
+void 			RAM_bufputs(char *data, uint16_t len);
 void 			RAM_bufget(uint8_t *buf, uint16_t len);
 uint32_t 		RAM_buflen(void);
 uint32_t 		RAM_buffree(void);
 void 			DMA_Config(void);
+void StartSpiDmaTransfer(char *data, uint16_t TransferSize);
 
 #endif /* EXTERNAL_RAM_H_ */
