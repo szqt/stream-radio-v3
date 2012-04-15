@@ -37,6 +37,7 @@
 #include "timer.h"
 #include "adc.h"
 #include "external_RAM.h"
+#include "DMA.h"
 
 
 extern u8_t IPradio_init(void);
@@ -52,15 +53,10 @@ xTaskHandle xIamLiveHandle;
 extern xTaskHandle xShoutcastTaskHandle;
 extern xTaskHandle xETHTsk;
 extern sys_thread_t xLWIPTskHandler;
-//OS_STK IamLive_stk[100];
-//OS_STK vs_task_stk[100];
-//OS_TID VS_TSK_ID;
-//OS_TID LIVE_TSK_ID;
 
 xSemaphoreHandle xSPI0_Mutex = NULL;
 xSemaphoreHandle xSPI1_Mutex = NULL;
-//OS_MutexID SPI_Mutex;
-//OS_MutexID SPI0_Mutex;
+xSemaphoreHandle xDMAch1_Semaphore = NULL;
 
 
 struct netif *lpc17xx_netif;
@@ -70,18 +66,14 @@ struct netif *loop_netif;
 	u16_t dhcpcnt = 0;
 	u8_t dhcpflag = 0;
 	u32_t ipadres[4];
-	//OS_TCID timer;
 #define DHCP_TIM_ID		1
 	xTimerHandle xDHCP_Timer;
 	xSemaphoreHandle xDhcpCmplSemaphore_1 = NULL;
 	xSemaphoreHandle xDhcpCmplSemaphore_2 = NULL;
-//	OS_EventID semDhcpCmpl;
-//	OS_EventID semDhcpCmpl_2;
 #endif
 
 int main()
 {
-	uint8_t k, l;
 	DelayTimer_Config();
 	LED_Config();
 	BUTTON_Config();
@@ -89,10 +81,11 @@ int main()
 	ADC_Config();
 	vs_init();
 	RAM_init();
-	RAM_test();
-	for(k=5; k>0; k--){
-		l=2/(k-1);
-	}
+	DMA_Config();
+//	RAM_test();
+	UART_PrintStr("test = ");
+	UART_PrintNum (-18);
+	UART_PrintStr("\r\n");
 
 	eth_lwip_init();
 #if DHCP_ON
@@ -112,8 +105,8 @@ int main()
     if(xSPI1_Mutex == NULL){
         // The mutex was not created.
     }
-	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 200, NULL, 4, &xVsTskHandle );
-	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IaLTsk", 400, NULL, 3, &xIamLiveHandle );
+	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
+	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IaLTsk", 200, NULL, 3, &xIamLiveHandle );
 
 	vTaskSuspend(xVsTskHandle);
 
@@ -209,54 +202,64 @@ void vIamLiveTask (void * pvParameters){
 //			licznik = 0;
 //		}
 
-		vTaskGetRunTimeStats((signed char*)buf);
-		UART_PrintBuf (buf, strlen(buf));
-
-		IamLive = uxTaskGetStackHighWaterMark(NULL);
-		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
-		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
-		TCP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
-		ETHinp = uxTaskGetStackHighWaterMark(xETHTsk);
-		UART_PrintStr("ILive: ");
-		UART_PrintNum(IamLive);
-		UART_PrintStr("\r\n");
-
-		UART_PrintStr("shout: ");
-		UART_PrintNum(Shoutcast);
-		UART_PrintStr("\r\n");
-
-		UART_PrintStr("VS: ");
-		UART_PrintNum(Vs);
-		UART_PrintStr("\r\n");
-
-		UART_PrintStr("LWIP: ");
-		UART_PrintNum(TCP);
-		UART_PrintStr("\r\n");
-
-		UART_PrintStr("LWIP: ");
-		UART_PrintNum(TCP);
-		UART_PrintStr("\r\n");
-
-		UART_PrintStr("ETH: ");
-		UART_PrintNum(ETHinp);
-		UART_PrintStr("\r\n");
+//		vTaskGetRunTimeStats((signed char*)buf);
+//		UART_PrintBuf (buf, strlen(buf));
+//
+//		IamLive = uxTaskGetStackHighWaterMark(NULL);
+//		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
+//		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
+//		TCP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
+//		ETHinp = uxTaskGetStackHighWaterMark(xETHTsk);
+//		UART_PrintStr("ILive: ");
+//		UART_PrintNum(IamLive);
+//		UART_PrintStr("\r\n");
+//
+//		UART_PrintStr("shout: ");
+//		UART_PrintNum(Shoutcast);
+//		UART_PrintStr("\r\n");
+//
+//		UART_PrintStr("VS: ");
+//		UART_PrintNum(Vs);
+//		UART_PrintStr("\r\n");
+//
+//		UART_PrintStr("LWIP: ");
+//		UART_PrintNum(TCP);
+//		UART_PrintStr("\r\n");
+//
+//		UART_PrintStr("LWIP: ");
+//		UART_PrintNum(TCP);
+//		UART_PrintStr("\r\n");
+//
+//		UART_PrintStr("ETH: ");
+//		UART_PrintNum(ETHinp);
+//		UART_PrintStr("\r\n");
 
 		LED_Toggle(2);
-		vTaskDelay(4000/portTICK_RATE_MS);
-//		CoTickDelay(100);
+		vTaskDelay(2000/portTICK_RATE_MS);
 	}
 }
 
 void vVsTask(void * pvParameters) {
+
+	vSemaphoreCreateBinary(xDMAch1_Semaphore);
+	if(xDMAch1_Semaphore != NULL){
+		xSemaphoreTake(xDMAch1_Semaphore, 0);
+	}else{
+		// The semaphore was not created
+	}
+
 	while (1) {
 		if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
 			VS_feed();
 			xSemaphoreGive(xSPI0_Mutex);
 		}
 		vTaskDelay(15/portTICK_RATE_MS);
-//		CoTickDelay(15);
 	}
 }
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName ){
+	while(1);
+}
+
+void vApplicationMallocFailedHook(void){
 	while(1);
 }

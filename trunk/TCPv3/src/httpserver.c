@@ -30,8 +30,8 @@ const static char
 		http_index_html_2[] =
 				"<form name=\"aForm\" action=\"http://192.168.196.124/\" method=\"get\"><select name=\"nazwa\"><option>OPT1</option><option>OPT2</option></select><input type=\"submit\" value=\"Update IO\"></form><br></body></html>";
 
-#define sizeHttp  200
-#define prioHttp  4
+#define sizeHttp  400
+#define prioHttp  6
 
 //extern OS_EventID semDhcpCmpl_2;
 extern xSemaphoreHandle xDhcpCmplSemaphore_2;
@@ -39,7 +39,7 @@ extern xSemaphoreHandle xDhcpCmplSemaphore_2;
 unsigned char HTTP_init(void) {
 	xTaskHandle xHttpTaskHandle;
 
-	xHttpTaskHandle = sys_thread_new(NULL, http_server, NULL, sizeHttp,
+	xHttpTaskHandle = sys_thread_new("HttpTsk", http_server, NULL, sizeHttp,
 			prioHttp);
 
 	if (xHttpTaskHandle == SYS_THREAD_NULL) {

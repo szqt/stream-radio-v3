@@ -36,7 +36,7 @@ xSemaphoreHandle semEthTx;
 xSemaphoreHandle semEthRx;
 xTaskHandle xETHTsk;
 
-#define sizeEthif  400
+#define sizeEthif  150			//wykorzystuje ok 70
 #define prioEthif   (TCPIP_THREAD_PRIO-1)
 
 /**

@@ -11,18 +11,17 @@
 #include "vs_patch.h"
 #include "external_RAM.h"
 #include "timer.h"
+#include "DMA.h"
 
-#include "EMAC.h"
-
-//extern xSemaphoreHandle xSPI1_Mutex
-
-//#define VS_BUFSIZE		16*1024
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 uint16_t size, size2;
 uint16_t iterator=0;
 
 //volatile uint32_t vs_bufhead=0, vs_buftail=0;
 extern volatile uint32_t RAM_bufhead, RAM_buftail;
+extern xSemaphoreHandle xDMAch1_Semaphore;
 //__DATA(RAM2) char VS_BUF[VS_BUFSIZE];
 
 const uint8_t sample[] = { 0xfd, 0xee, 0xf6,
@@ -1242,7 +1241,7 @@ void vs_init(void){
 	SPI_Config();
 	delay_ms(10);
 	vs_write_reg(VS_MODE, SM_SDINEW);
-	vs_write_reg(VS_VOL, 0x3030);
+	vs_write_reg(VS_VOL, 0x2020);
 	vs_write_reg(VS_BASS, 0x0F5A);//TREBFREQ = 15000Hz, BASSAMP =5, BASSFREQ 100Hz
 	status = vs_read_reg(VS_STATUS);
 	vs_write_reg(VS_CLOCKF, VS_SC_ADD_2X | VS_SC_MUL_4X);		/* CLKI = 4x12.288MHz = 49.152MHz, 5x12.288MHz = 61.44MHz */
@@ -1256,20 +1255,20 @@ void vs_init(void){
 	RAM_buftail=0;
 
 	cnt1 = 0;
-	while (cnt1 < 16352) {
-		if ((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0) { /* Jezeli pin DREQ ma stan wysoki wylija dane do VS */
-
-			CS_HIGH(); /* Dla pewnosci */
-			DSC_LOW();
-
-			for (cnt2=0; cnt2 < 32; cnt2++) {
-				spi_write(sample[cnt1+cnt2]);
-			}
-
-			DSC_HIGH();
-			cnt1+=32;
-		}
-	}
+//	while (cnt1 < 16352) {
+//		if ((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0) { /* Jezeli pin DREQ ma stan wysoki wylija dane do VS */
+//
+//			CS_HIGH(); /* Dla pewnosci */
+//			DSC_LOW();
+//
+//			for (cnt2=0; cnt2 < 32; cnt2++) {
+//				spi_write(sample[cnt1+cnt2]);
+//			}
+//
+//			DSC_HIGH();
+//			cnt1+=32;
+//		}
+//	}
 }
 
 void EINT3_IRQHandler(void){
@@ -1289,7 +1288,7 @@ void EINT3_IRQHandler(void){
 void VS_feed(void){
 
 	uint32_t len;
-	uint8_t buffer[32], cntr;
+	uint8_t buffer[33];//, cntr;
 
 	while((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0){		/* Jezeli pin DREQ ma stan wysoki wyslij dane do VS */
 		len = RAM_buflen();								/* Sprawdż ile jest danych w buforze */
@@ -1305,10 +1304,13 @@ void VS_feed(void){
 		CS_HIGH();									/* Dla pewnosci */
 		DSC_LOW();
 
-		for (cntr=0; cntr<len; cntr++)
-			spi_write(buffer[cntr]);
-//		while ( LPC_SSP0->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-		DSC_HIGH();
+//		for (cntr=0; cntr<len; cntr++)
+//			spi_write(buffer[cntr]);
+		StartSpi0TxDmaTransfer(&buffer[1]);
+		if(xSemaphoreTake(xDMAch1_Semaphore, portMAX_DELAY) == pdTRUE){
+			while ( LPC_SSP0->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+			DSC_HIGH();
+		}
 //		CoLeaveMutexSection(SPI0_Mutex);
 
 	}

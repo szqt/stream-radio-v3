@@ -4,6 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../src/DMA.c \
 ../src/cr_startup_lpc176x.c \
 ../src/external_RAM.c \
 ../src/httpserver.c \
@@ -11,6 +12,7 @@ C_SRCS += \
 ../src/shoutcast.c 
 
 OBJS += \
+./src/DMA.o \
 ./src/cr_startup_lpc176x.o \
 ./src/external_RAM.o \
 ./src/httpserver.o \
@@ -18,6 +20,7 @@ OBJS += \
 ./src/shoutcast.o 
 
 C_DEPS += \
+./src/DMA.d \
 ./src/cr_startup_lpc176x.d \
 ./src/external_RAM.d \
 ./src/httpserver.d \

@@ -11,11 +11,10 @@
 #include "LPC17xx.h"
 
 __INLINE void UART2_Config(int Baudrate);
-void  UART_PrintChar (uint8_t ch);
-void UART_PrintNum (int numb);
-void  UART_PrintStr (char * str);
-void  UART_PrintBuf (char * str, uint16_t len);
-//void  UART_Printf(const uint8_t  *format, ...);
-void UART2_IRQHandler();
+void  	UART_PrintChar (uint8_t ch);
+void 	UART_PrintNum (int numb);
+void  	UART_PrintStr (char * str);
+void  	UART_PrintBuf (char * str, uint16_t len);
+void 	UART2_IRQHandler();
 
 #endif /* UART_H_ */

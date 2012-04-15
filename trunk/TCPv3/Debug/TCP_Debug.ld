@@ -3,7 +3,7 @@
  * (C) Code Red Technologies Ltd, 2008-2012
  * Generated linker script file for LPC1768
  * Created from generic_c.ld (vLPCXpresso v4.1 (5 [Build 219] [12/12/2011] ))
- * By LPCXpresso v4.1.5 [Build 219] [12/12/2011]  on Fri Apr 13 13:34:26 CEST 2012
+ * By LPCXpresso v4.1.5 [Build 219] [12/12/2011]  on Sun Apr 15 22:22:10 CEST 2012
  */
 
 
