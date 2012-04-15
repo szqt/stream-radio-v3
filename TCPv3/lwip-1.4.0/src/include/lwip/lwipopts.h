@@ -278,7 +278,7 @@
 //
 //*****************************************************************************
 #define TCPIP_THREAD_NAME              "tcpipTsk"
-#define TCPIP_THREAD_STACKSIZE          400
+#define TCPIP_THREAD_STACKSIZE          250		//było 400, wykorzystuje ok 170
 #define TCPIP_THREAD_PRIO               7
 
 /**
