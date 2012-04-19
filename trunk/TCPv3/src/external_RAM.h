@@ -79,5 +79,6 @@ void 			RAM_bufputs(char *data, uint16_t len);
 void 			RAM_bufget(uint8_t *buf, uint16_t len);
 uint32_t 		RAM_buflen(void);
 uint32_t 		RAM_buffree(void);
+void 			resetbuff(void);
 
 #endif /* EXTERNAL_RAM_H_ */

@@ -323,7 +323,7 @@
  * The queue size value itself is platform-dependent, but is passed to
  * sys_mbox_new() when the acceptmbox is created.
  */
-#define DEFAULT_ACCEPTMBOX_SIZE         12
+#define DEFAULT_ACCEPTMBOX_SIZE         6
 
 //*****************************************************************************
 //
@@ -441,6 +441,7 @@
 
 //extern void LWIPDebug(const char *pcString, ...);
 //#define LWIP_PLATFORM_DIAG(x) {LWIPDebug x;}
+
 #define LWIP_PLATFORM_DIAG(x)
 
 

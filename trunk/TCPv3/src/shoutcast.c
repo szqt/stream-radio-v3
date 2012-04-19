@@ -23,9 +23,10 @@
 #if LWIP_NETCONN
 
 void shoutcast(void *pdata);
+void PrintERR(err_t rc);
 
 #define sizeScast				200		//wykorzystuje ok 130
-#define prioScast				5
+#define prioScast				4
 #define STATION_NAME_MAX_LEN	100
 #define TITLE_MAX_LEN			100
 
@@ -65,25 +66,24 @@ void shoutcast(void *pdata) {
 	struct netconn *NetConn = NULL;
 	struct netbuf *inbuf;
 	struct ip_addr ipaddrserv;
-	err_t rc1, rc2, rc3;
+	u16_t portserv;
+	err_t rc1, rc2, rc3, rc4;
 	u8_t cnt;
 	u16_t CpBytes, MetaDataLen, BufLen, MDLpos;
 	char *ptr, *ptr_tmp;
 	int HeaderLen, DataCounter=0;
 	char flaga = 0;
 
-	const char string1[] = "GET / HTTP/1.0\r\n";
-	const char string2[] = "Host: 217.74.72.10\r\n";
+//	const char string1[] = "GET / HTTP/1.0\r\n";
 //	const char string2[] = "Host: 89.149.227.111\r\n";
 //	const char string2[] = "Host: 89.238.252.146\r\n";
 //	const char string2[] = "Host: 50.117.115.211\r\n";
 //	const char string2[] = "Host: 217.74.72.12\r\n";
 //	const char string2[] = "Host: 50.7.241.126\r\n";
 //	const char string2[] = "Host: 85.17.26.74\r\n";
-//	const char string2[] = "Host: 88.190.234.235\r\n";
-	const char string3[] = "User-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	const char string2[] = "Host: 80.190.234.235\r\n";
+//	const char string3[] = "User-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 
-	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000		RMF AAC+ 48bps
 //	IP4_ADDR(&ipaddrserv, 89, 149, 227, 111); //port 8050	ZET AAC+ 32bps
 //	IP4_ADDR(&ipaddrserv, 89, 238, 252, 146); //port 7000	EuropaFM AAC+ Romiania 32kbps
 //	IP4_ADDR(&ipaddrserv, 50, 117, 115, 211); //port 80		idobi Radio MP3 128kbps
@@ -91,6 +91,22 @@ void shoutcast(void *pdata) {
 //	IP4_ADDR(&ipaddrserv, 50, 7, 241, 126); //port 80		Alex Jones - Infowars.com MP3 32kbps
 //	IP4_ADDR(&ipaddrserv, 85, 17, 26, 74); //port 80		TechnoBase.FM MP3 128kbps
 //	IP4_ADDR(&ipaddrserv, 80, 190, 234, 235); //port 80		French Kiss FM MP3 128kbps
+
+	/* RMF AAC+ 48bps port 9000 */
+	const char string[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
+	portserv = 9000;
+
+	/* SKY.FM FM MP3 96kbps port 80 */
+//	const char string[] = "GET /stream/1010 HTTP/1.0\r\nHost: scfire-dtc-aa04.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 207, 200, 96, 231); //
+//	portserv = 80;
+
+	/* 181.FM MP3 128kbps port 8002 */
+//	const char string[] = "GET /stream/1022 HTTP/1.0\r\nHost: scfire-ntc-aa05.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 207, 200, 96, 134);
+//	portserv = 80;
+
 
 	vSemaphoreCreateBinary(xDMAch0_Semaphore);
 	if(xDMAch0_Semaphore != NULL){
@@ -107,8 +123,8 @@ void shoutcast(void *pdata) {
 	}
 
 	if (xSemaphoreTake(xDhcpCmplSemaphore_1, portMAX_DELAY) == pdTRUE) {
-reconect:
 
+reconect:
 		NetConn = netconn_new(NETCONN_TCP);
 		netconn_set_recvtimeout(NetConn, 30000);
 
@@ -116,32 +132,31 @@ reconect:
 			/*No memory for new connection? */
 			UART_PrintStr("No mem for new con\r\n");
 		}
-		rc1 = netconn_bind(NetConn, NULL, 3250);	//3250		/* Adres IP i port local host'a */
-		UART_PrintStr("netcon binded\r\n");
-		rc2 = netconn_connect(NetConn, &ipaddrserv, 9000);		/* Adres IP i port serwera */
-
-		if(rc1 != ERR_OK || rc2 != ERR_OK){
-			netconn_delete(NetConn);
-			UART_PrintStr("connection error\r\n");
-			if(rc1 != ERR_OK){
-				UART_PrintStr("rc1 = ");
-				UART_PrintNum (rc1);
-				UART_PrintStr("\r\n");
-			}
-			if(rc2 != ERR_OK){
-				UART_PrintStr("rc2 = ");
-				UART_PrintNum (rc2);
-				UART_PrintStr("\r\n");
-			}
-			LED_On(0);
-			goto reconect;
+		while((rc1 = netconn_bind(NetConn, NULL, 3250)) != ERR_OK){	/* Adres IP i port local host'a */
+			UART_PrintStr("Ncon_bind error: ");
+			PrintERR(rc1);
+			vTaskDelay(10000/portTICK_RATE_MS); 		// wait 10 sec
 		}
-		else{
+		UART_PrintStr("netcon binded\r\n");
+
+		rc2 = netconn_connect(NetConn, &ipaddrserv, portserv);		/* Adres IP i port serwera */
+
+		if(rc2 != ERR_OK){
+			UART_PrintStr("Ncon_connect error: ");
+			PrintERR(rc2);
+			LED_On(0);
+			netconn_delete(NetConn);
+			goto reconect;
+		}else{
 			UART_PrintStr("netcon connected\r\n");
 			LED_Off(0);
-			netconn_write(NetConn, string1, sizeof(string1)-1, NETCONN_NOCOPY);
-			netconn_write(NetConn, string2, sizeof(string2)-1, NETCONN_NOCOPY);
-			netconn_write(NetConn, string3, sizeof(string3)-1, NETCONN_NOCOPY);
+			rc1 = netconn_write(NetConn, string, sizeof(string), NETCONN_NOCOPY);
+			if(rc1 != ERR_OK){
+				UART_PrintStr("Ncon_write error: ");
+				PrintERR(rc1);
+			}
+//			netconn_write(NetConn, string2, sizeof(string2)-1, NETCONN_NOCOPY);
+//			netconn_write(NetConn, string3, sizeof(string3)-1, NETCONN_NOCOPY);
 
 			while((netconn_recv(NetConn, &inbuf)) == ERR_OK){
 				BufLen = netbuf_len(inbuf);
@@ -173,8 +188,8 @@ reconect:
 				/* Znajdź koniec nagłówka */
 				ptr = strstr(mybuf, "\r\n\r\n");
 				if (ptr != NULL) {
-					HeaderLen = ptr - mybuf + 4;		/* Oblicz długosc danych nagłówkoych w odebranej porcji danych */
-					DataCounter = CpBytes - HeaderLen;	/* W pakiecie są pierwsze dane strumienia */
+					HeaderLen = ptr - mybuf + 4;			/* Oblicz długosc danych nagłówkoych w odebranej porcji danych */
+					DataCounter = CpBytes - HeaderLen;		/* W pakiecie są pierwsze dane strumienia */
 					RAM_bufputs(mybuf, DataCounter);		/* Wrzuć te dane do bufora VS */
 					break;
 				}
@@ -185,15 +200,15 @@ reconect:
 				if(BufLen > 6144){
 					UART_PrintStr("ERROR3\r\n");
 				}
-				CpBytes= netbuf_copy(inbuf, mybuf, BufLen);
+				CpBytes= netbuf_copy(inbuf, mybuf, BufLen);	/* Skopiuj odebrane dane */
+				netbuf_delete(inbuf);						/* Zwolnij bufor */
 
-				netbuf_delete(inbuf);
-
-				if(RAM_buflen()<500){
+				if(RAM_buflen() == 0 && flaga == 1){					/* Bufor jest pusty - zatrzymaj zadanie VS */
 					UART_PrintStr("BFF EMPTY\r\n");
-					vTaskSuspend(xVsTskHandle);
-
+					vTaskSuspend(xVsTskHandle);			// TODO: tutaj może następować deadlock jak VS przeją mutex od SPI
+														// po zatrzymaniu zadania VS nie da się odzysakać mutexa
 					flaga = 0;
+					resetbuff();						/* Resetuj bufor */
 				}
 
 				DataCounter += CpBytes;
@@ -243,21 +258,21 @@ reconect:
 				}
 
 
-				if(RAM_buflen()>120*1024 && flaga == 0){
-					vTaskResume(xVsTskHandle);
-					flaga=1;
+				if(RAM_buflen()>120*1024 && flaga == 0){	/* Bufor jest pełny */
+					vTaskResume(xVsTskHandle);				/* Uruchom zadanie dekodera */
+					flaga=1;								/* Ustaw flagę uruchomienia zadania dekodera */
 				}
 				LED_Toggle(1);
 			}
-			if(rc3 == ERR_TIMEOUT)
-				UART_PrintStr("Timeout\r\n");
-			else{
-				UART_PrintStr("recv error = ");
-				UART_PrintNum (rc3);
-				UART_PrintStr("\r\n");
-			}
+			UART_PrintStr("Recv error: ");
+			PrintERR(rc3);
+
 			LED_On(0);
-			netconn_close(NetConn);
+			rc4=netconn_close(NetConn);
+			if(rc4 != ERR_OK){
+				UART_PrintStr("Ncon_close error: ");
+				PrintERR(rc4);
+			}
 			UART_PrintStr("netcon closed\r\n");
 			netconn_delete(NetConn);
 			UART_PrintStr("netcon deleted\r\n");
@@ -265,7 +280,63 @@ reconect:
 			goto reconect;
 		}
 	}
-	while(1) vTaskDelay(100/portTICK_RATE_MS);
+	while(1) vTaskDelay(100/portTICK_RATE_MS);			/* Tutaj aplikacja nie powinna dojsc */
+}
+
+void PrintERR(err_t rc){
+	switch(rc){
+	case ERR_OK:
+		UART_PrintStr("ERR_OK - No error, everything OK.\r\n");
+		break;
+	case ERR_MEM:
+		UART_PrintStr("ERR_MEM - Out of memory error.\r\n");
+		break;
+	case ERR_BUF:
+		UART_PrintStr("ERR_BUF - Buffer error.\r\n");
+		break;
+	case ERR_TIMEOUT:
+		UART_PrintStr("ERR_TIMEOUT - Timeout.\r\n");
+		break;
+	case ERR_RTE:
+		UART_PrintStr("ERR_RTE - Routing problem.\r\n");
+		break;
+	case ERR_INPROGRESS:
+		UART_PrintStr("ERR_INPROGRESS - Operation in progress.\r\n");
+		break;
+	case ERR_VAL:
+		UART_PrintStr("ERR_VAL - Illegal value.\r\n");
+		break;
+	case ERR_WOULDBLOCK:
+		UART_PrintStr("ERR_WOULDBLOCK - Operation would block.\r\n");
+		break;
+	case ERR_USE:
+		UART_PrintStr("ERR_USE - Address in use.\r\n");
+		break;
+	case ERR_ISCONN:
+		UART_PrintStr("ERR_ISCONN - Already connected.\r\n");
+		break;
+	case ERR_ABRT:
+		UART_PrintStr("ERR_ABRT - Connection aborted.\r\n");
+		break;
+	case ERR_RST:
+		UART_PrintStr("ERR_RST - Connection reset.\r\n");
+		break;
+	case ERR_CLSD:
+		UART_PrintStr("ERR_CLSD - Connection closed.\r\n");
+		break;
+	case ERR_CONN:
+		UART_PrintStr("ERR_CONN - Not connected.\r\n");
+		break;
+	case ERR_ARG:
+		UART_PrintStr("ERR_ARG - Illegal argument.\r\n");
+		break;
+	case ERR_IF:
+		UART_PrintStr("ERR_IF - Low-level netif error.\r\n");
+		break;
+	default:
+		break;
+
+	}
 }
 
 #endif /* LWIP_NETCONN*/
