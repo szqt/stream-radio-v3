@@ -18,6 +18,7 @@
 
 void http_server(void *pdata);
 void http_server_serve(struct netconn *conn);
+extern void PrintERR(err_t rc);
 
 extern char Title[];
 
@@ -31,16 +32,16 @@ const static char
 				"<form name=\"aForm\" action=\"http://192.168.196.124/\" method=\"get\"><select name=\"nazwa\"><option>OPT1</option><option>OPT2</option></select><input type=\"submit\" value=\"Update IO\"></form><br></body></html>";
 
 #define sizeHttp  400
-#define prioHttp  6
+#define prioHttp  4
 
-//extern OS_EventID semDhcpCmpl_2;
 extern xSemaphoreHandle xDhcpCmplSemaphore_2;
 
 unsigned char HTTP_init(void) {
-	xTaskHandle xHttpTaskHandle;
+	xTaskHandle xHttpTaskHandle = NULL;
 
-	xHttpTaskHandle = sys_thread_new("HttpTsk", http_server, NULL, sizeHttp,
-			prioHttp);
+	xHttpTaskHandle = sys_thread_new("HttpTsk", http_server, NULL, sizeHttp, prioHttp);
+
+//	xTaskCreate( http_server, ( signed portCHAR * ) "HttpTsk", 400, NULL, 5, &xHttpTaskHandle );
 
 	if (xHttpTaskHandle == SYS_THREAD_NULL) {
 		return 1;
@@ -104,6 +105,7 @@ void http_server(void *pdata) {
 
 		/* Create a new TCP connection handle */
 		HTTPNetConn = netconn_new(NETCONN_TCP);
+//		netconn_set_recvtimeout(HTTPNetConn, 100);
 		if (HTTPNetConn == NULL) {
 			/*No memory for new connection? */
 			UART_PrintStr("No mem for new HTTP con\r\n");
@@ -111,12 +113,19 @@ void http_server(void *pdata) {
 		/* Bind to port 80 (HTTP) with default IP address */
 		netconn_bind(HTTPNetConn, NULL, 80);
 
-		/* Put the connection into LISTEN state */netconn_listen(HTTPNetConn);
+		/* Put the connection into LISTEN state */
+		netconn_listen(HTTPNetConn);
 
 		while (1) {
 			rc1 = netconn_accept(HTTPNetConn, &xHTTPNetConn);
-			http_server_serve(xHTTPNetConn);
-			netconn_delete(xHTTPNetConn);
+			if(rc1 == ERR_OK){
+//				http_server_serve(xHTTPNetConn);
+				UART_PrintStr("netconn accept\r\n");
+				netconn_close(xHTTPNetConn);
+				netconn_delete(xHTTPNetConn);
+			}else{
+				PrintERR(rc1);
+			}
 		}
 	}
 	while (1)

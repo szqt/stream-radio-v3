@@ -13,6 +13,7 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "gpio.h"
+#include "uart.h"
 
 extern xSemaphoreHandle xSPI1_Mutex;
 extern xSemaphoreHandle xDMAch0_Semaphore;
@@ -311,7 +312,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 	if(len==0){
 		return;
 	}
-	if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
+	if (xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE) {
 		head = RAM_bufhead;
 
 		if(head<RAM_CHIPSIZE){
@@ -469,6 +470,8 @@ void RAM_bufputs(char *data, uint16_t len) {
 				}
 			}
 		}
+	}else{
+		UART_PrintStr("bufput mutex timeout\r\n");
 	}
 }
 /**
@@ -909,7 +912,7 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 	uint8_t dummy = 0xa5;
 	uint16_t read_data;
 
-	if(xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE){
+	if(xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE){
 		tail = RAM_buftail;
 
 		if(tail < RAM_CHIPSIZE){		/* End of circular buffer is in first RAM */
@@ -1104,6 +1107,8 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 				}
 			}
 		}
+	}else{
+		UART_PrintStr("bufget mutex timeout\r\n");
 	}
 }
 /**
@@ -1116,7 +1121,7 @@ void RAM_bufget2(uint8_t *buf, uint16_t len) {
 	uint32_t tail;
 	uint8_t dummy;
 
-	if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
+	if (xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE) {
 		while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 		while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )			/* Celan Rx FIFO */
 		{
@@ -1478,6 +1483,8 @@ void RAM_bufget2(uint8_t *buf, uint16_t len) {
 		RAM_buftail = tail;
 		xSemaphoreGive(xSPI1_Mutex);
 		//	CoLeaveMutexSection(SPI_Mutex);
+	}else{
+		UART_PrintStr("bufget mutex timeout\r\n");
 	}
 	return;
 }
@@ -1511,4 +1518,11 @@ uint32_t RAM_buffree(void) {
 
 	return (RAM_BUFSIZE - RAM_buflen() - 1);
 
+}
+/**
+ * Reset audio buffer
+ */
+void resetbuff(void){
+	RAM_buftail = 0;
+	RAM_bufhead = 0;
 }

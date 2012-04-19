@@ -124,8 +124,7 @@ void sys_mbox_free(sys_mbox_t *mbox){
 void sys_mbox_post(sys_mbox_t *mbox, void *msg)
 {
 
-	if (xQueueSend( *mbox, &msg, ( portTickType ) portMAX_DELAY ) == pdTRUE)
-	{
+	if (xQueueSendToBack( *mbox, &msg, ( portTickType ) portMAX_DELAY ) != pdTRUE){
 #if SYS_STATS
 		SYS_STATS_INC(mbox.err);
 #endif /* SYS_STATS */
@@ -169,11 +168,10 @@ void sys_sem_set_invalid(sys_sem_t *sem)
 err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg){
 
     // Queue must not be full - Otherwise it is an error.
-    if(xQueueSend( *mbox, &msg, 0 ) == pdPASS){
+    if(xQueueSendToBack( *mbox, &msg, 0 ) == pdTRUE){
     	return ERR_OK;
     }
     else{
-
 #if SYS_STATS
 			SYS_STATS_INC(mbox.err);
 #endif /* SYS_STATS */
@@ -286,22 +284,23 @@ u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg)
  * @param count initial count of the semaphore
  * @return ERR_OK if successful, another err_t otherwise
  *---------------------------------------------------------------------------*/
-err_t sys_sem_new(sys_sem_t *sem, u8_t count)
+err_t sys_sem_new(sys_sem_t *xSemaphore, u8_t count)
 {
 	portENTER_CRITICAL();
-	vSemaphoreCreateBinary(*sem);
-		// Means it can't be taken
-	if (count == 0){
-		xSemaphoreTake(*sem, 1);
-	}
-	portEXIT_CRITICAL();
+	vSemaphoreCreateBinary(*xSemaphore);
 
-	if(*sem != NULL ){
+	if(*xSemaphore != NULL ){
+		if (count == 0){
+			xSemaphoreTake(*xSemaphore, 1);
+		}
+		portEXIT_CRITICAL();
+
 #if SYS_STATS
 		SYS_STATS_INC(sem.used);
 #endif
 		return ERR_OK;
 	}else{
+		portEXIT_CRITICAL();
 #if SYS_STATS
 		SYS_STATS_INC(sem.err);
 #endif
@@ -317,20 +316,19 @@ err_t sys_sem_new(sys_sem_t *sem, u8_t count)
  * @return time (in milliseconds) waited for the semaphore
  *         or SYS_ARCH_TIMEOUT on timeout
  *---------------------------------------------------------------------------*/
-u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
+u32_t sys_arch_sem_wait(sys_sem_t *xSemaphore, u32_t timeout)
 {
 	portTickType StartTime, EndTime;
 	u32_t Elapsed;
 
 	StartTime = xTaskGetTickCount();
 
-	if (timeout != 0)
-	{
-		if ( xSemaphoreTake( *sem, timeout/portTICK_RATE_MS ) == pdTRUE) // TODO: Define a proper macro to count ms
-		{
+	if (timeout != 0){
+
+		if ( xSemaphoreTake( *xSemaphore, timeout/portTICK_RATE_MS ) == pdTRUE){
 			// Return time blocked.
 			EndTime = xTaskGetTickCount();
-			Elapsed = portTICK_RATE_MS*(EndTime - StartTime); // TODO: Define a proper macro to count ms
+			Elapsed = portTICK_RATE_MS*(EndTime - StartTime);
 			if (Elapsed == 0)
 			{
 				Elapsed = 1*portTICK_RATE_MS;
@@ -346,8 +344,7 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 	else
 	{
 		// must block without a timeout
-		if (xSemaphoreTake( *sem, portMAX_DELAY ) != pdTRUE)
-		{
+		if (xSemaphoreTake( *xSemaphore, portMAX_DELAY ) != pdTRUE){
 #if SYS_STATS
 			SYS_STATS_INC(sem.err);
 #endif /* SYS_STATS */
@@ -355,12 +352,10 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 
 		// Return time blocked.
 		EndTime = xTaskGetTickCount();
-		Elapsed = portTICK_RATE_MS*(EndTime - StartTime);// TODO: Define a proper macro to count ms
-		if (Elapsed == 0)
-		{
+		Elapsed = portTICK_RATE_MS*(EndTime - StartTime);
+		if (Elapsed == 0){
 			Elapsed = portTICK_RATE_MS*1;
 		}
-
 		// return time blocked
 		return (Elapsed);
 	}
@@ -369,11 +364,11 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
 /** Create a new mutex
  * @param mutex pointer to the mutex to create
  * @return a new mutex */
-err_t sys_mutex_new(sys_mutex_t *mutex) {
+err_t sys_mutex_new(sys_mutex_t *xMutex) {
 
-	*mutex = xSemaphoreCreateMutex();
+	*xMutex = xSemaphoreCreateMutex();
 
-	if( *mutex != NULL ){
+	if( *xMutex != NULL ){
 #if SYS_STATS
 		SYS_STATS_INC(mutex.used);
 #endif
@@ -382,32 +377,32 @@ err_t sys_mutex_new(sys_mutex_t *mutex) {
 #if SYS_STATS
 		SYS_STATS_INC(mutex.err);
 #endif
-	}
 	return ERR_MEM;
+	}
 }
 
 /** Lock a mutex
  * @param mutex the mutex to lock */
-void sys_mutex_lock(sys_mutex_t *mutex)
+void sys_mutex_lock(sys_mutex_t *xMutex)
 {
-	xSemaphoreTake(*mutex, portMAX_DELAY);
+	while(xSemaphoreTake(*xMutex, portMAX_DELAY) != pdTRUE);
 }
 
 /** Unlock a mutex
  * @param mutex the mutex to unlock */
-void sys_mutex_unlock(sys_mutex_t *mutex)
+void sys_mutex_unlock(sys_mutex_t *xMutex)
 {
-	xSemaphoreGive(*mutex);
+	xSemaphoreGive(*xMutex);
 }
 
-/** Delete a semaphore
+/** Delete a mutex
  * @param mutex the mutex to delete */
-void sys_mutex_free(sys_mutex_t *mutex)
+void sys_mutex_free(sys_mutex_t *xMutex)
 {
 #if SYS_STATS
 	SYS_STATS_DEC(mutex.used);
 #endif /* SYS_STATS */
-	vQueueDelete(*mutex);
+	vQueueDelete(*xMutex);
 }
 
 

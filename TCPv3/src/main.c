@@ -83,9 +83,6 @@ int main()
 	RAM_init();
 	DMA_Config();
 //	RAM_test();
-	UART_PrintStr("test = ");
-	UART_PrintNum (-18);
-	UART_PrintStr("\r\n");
 
 	eth_lwip_init();
 #if DHCP_ON
@@ -95,8 +92,6 @@ int main()
 	}
 #endif
 
-	IPradio_init();
-//	HTTP_init();
 	xSPI0_Mutex = xSemaphoreCreateMutex();
     if(xSPI0_Mutex == NULL){
         // The mutex was not created.
@@ -105,8 +100,12 @@ int main()
     if(xSPI1_Mutex == NULL){
         // The mutex was not created.
     }
+	if(IPradio_init() != 0){
+		// Could not be initiated
+	}
+//	HTTP_init();
 	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
-	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IaLTsk", 200, NULL, 3, &xIamLiveHandle );
+	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IaLTsk", 400, NULL, 3, &xIamLiveHandle );
 
 	vTaskSuspend(xVsTskHandle);
 
@@ -150,6 +149,7 @@ void eth_lwip_init(void)
 	}else{
 		// The semaphore was not created
 	}
+
 #endif
 
 }
@@ -172,29 +172,29 @@ void vDHCP_TimerCallback(xTimerHandle pxTimer){
 //		ipadres[3]=0xff&(lpc17xx_netif->ip_addr.addr);	// do lewej
 		LED_On(5);
 		xSemaphoreGive(xDhcpCmplSemaphore_1);
-//		xSemaphoreGive(xDhcpCmplSemaphore_2);
+		xSemaphoreGive(xDhcpCmplSemaphore_2);
 		dhcpflag = 1;
 	}
 }
 #endif
 
 void vIamLiveTask (void * pvParameters){
-//	static uint8_t last_vol = 0;
-//	uint8_t new_vol;
+	static uint8_t last_vol = 0;
+	uint8_t new_vol;
 //	uint8_t licznik=0;
-	char buf[120];
-	unsigned portBASE_TYPE Shoutcast, Vs, IamLive, TCP, ETHinp;
+//	char buf[120], buf2[300];
+//	unsigned portBASE_TYPE Shoutcast, Vs, IamLive, TCP, ETHinp;
 	while(1){
 
-//		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
-//		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
-//			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
-//				vs_set_volume(new_vol);
-//				xSemaphoreGive(xSPI0_Mutex);
-//			}
-//			last_vol = new_vol;
-//			LED_Toggle(3);
-//		}
+		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
+		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
+			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
+				vs_set_volume(new_vol);
+				xSemaphoreGive(xSPI0_Mutex);
+			}
+			last_vol = new_vol;
+			LED_Toggle(3);
+		}
 //		licznik++;
 //		if(licznik >=40){
 //			UART_PrintNum(RAM_buflen());
@@ -204,6 +204,9 @@ void vIamLiveTask (void * pvParameters){
 
 //		vTaskGetRunTimeStats((signed char*)buf);
 //		UART_PrintBuf (buf, strlen(buf));
+//		vTaskList((signed char*)buf2);
+//		UART_PrintBuf (buf2, strlen(buf2));
+
 //
 //		IamLive = uxTaskGetStackHighWaterMark(NULL);
 //		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
@@ -235,7 +238,7 @@ void vIamLiveTask (void * pvParameters){
 //		UART_PrintStr("\r\n");
 
 		LED_Toggle(2);
-		vTaskDelay(2000/portTICK_RATE_MS);
+		vTaskDelay(50/portTICK_RATE_MS);
 	}
 }
 
