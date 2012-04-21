@@ -186,15 +186,16 @@ void vIamLiveTask (void * pvParameters){
 //	unsigned portBASE_TYPE Shoutcast, Vs, IamLive, TCP, ETHinp;
 	while(1){
 
-		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
-		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
-			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
-				vs_set_volume(new_vol);
-				xSemaphoreGive(xSPI0_Mutex);
-			}
-			last_vol = new_vol;
-			LED_Toggle(3);
-		}
+//		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
+//		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
+//			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
+//				vs_set_volume(new_vol);
+//				LED_Toggle(3);
+//				xSemaphoreGive(xSPI0_Mutex);
+//			}
+//			last_vol = new_vol;
+//
+//		}
 //		licznik++;
 //		if(licznik >=40){
 //			UART_PrintNum(RAM_buflen());
