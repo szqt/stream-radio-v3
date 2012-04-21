@@ -18,22 +18,24 @@
 #include "gpio.h"
 #include "uart.h"
 #include "external_RAM.h"
-//#include "vs1053.h"
+#include "vs1053.h"
 
 #if LWIP_NETCONN
 
 void shoutcast(void *pdata);
 void PrintERR(err_t rc);
 
-#define sizeScast				200		//wykorzystuje ok 130
+#define sizeScast				600		//wykorzystuje ok 130 można dać 200
 #define prioScast				4
 #define STATION_NAME_MAX_LEN	100
 #define TITLE_MAX_LEN			100
 
 extern xTaskHandle xVsTskHandle;
 extern xSemaphoreHandle xDhcpCmplSemaphore_1;
+extern xSemaphoreHandle xSPI1_Mutex;
 xSemaphoreHandle xDMAch0_Semaphore = NULL;
 xSemaphoreHandle xDMAch2_Semaphore = NULL;
+//xSemaphoreHandle xVS_stopped = NULL;
 //__DATA(RAM2) char mybuf[6144];
 __SECTION(bss,RAM2) char mybuf[6144];
 
@@ -72,41 +74,138 @@ void shoutcast(void *pdata) {
 	u16_t CpBytes, MetaDataLen, BufLen, MDLpos;
 	char *ptr, *ptr_tmp;
 	int HeaderLen, DataCounter=0;
-	char flaga = 0;
+	char flaga = 0, dummy;
 
-//	const char string1[] = "GET / HTTP/1.0\r\n";
-//	const char string2[] = "Host: 89.149.227.111\r\n";
-//	const char string2[] = "Host: 89.238.252.146\r\n";
-//	const char string2[] = "Host: 50.117.115.211\r\n";
-//	const char string2[] = "Host: 217.74.72.12\r\n";
-//	const char string2[] = "Host: 50.7.241.126\r\n";
-//	const char string2[] = "Host: 85.17.26.74\r\n";
-//	const char string2[] = "Host: 80.190.234.235\r\n";
-//	const char string3[] = "User-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 
-//	IP4_ADDR(&ipaddrserv, 89, 149, 227, 111); //port 8050	ZET AAC+ 32bps
-//	IP4_ADDR(&ipaddrserv, 89, 238, 252, 146); //port 7000	EuropaFM AAC+ Romiania 32kbps
-//	IP4_ADDR(&ipaddrserv, 50, 117, 115, 211); //port 80		idobi Radio MP3 128kbps
-//	IP4_ADDR(&ipaddrserv, 217, 74, 72, 12); //port 9002		RMF MAXXX AAC+ 48kbps
-//	IP4_ADDR(&ipaddrserv, 50, 7, 241, 126); //port 80		Alex Jones - Infowars.com MP3 32kbps
-//	IP4_ADDR(&ipaddrserv, 85, 17, 26, 74); //port 80		TechnoBase.FM MP3 128kbps
-//	IP4_ADDR(&ipaddrserv, 80, 190, 234, 235); //port 80		French Kiss FM MP3 128kbps
+	/* ZET AAC+ 32bps port 8050 */
+	const char string1[] = "GET / HTTP/1.0\r\nHost: 89.149.227.111\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 89, 149, 227, 111);
+//	portserv = 8050;
+
+	/* EuropaFM AAC+ Romiania 32kbps port 7000*/
+	const char string2[] = "GET / HTTP/1.0\r\nHost: 89.238.252.146\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 89, 238, 252, 146);
+//	portserv = 7000;
+
+	/* idobi Radio MP3 128kbps port 80 */
+	const char string3[] = "GET / HTTP/1.0\r\nHost: 50.117.115.211\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 50, 117, 115, 211);
+//	portserv = 80;
+
+	/* RMF MAXXX AAC+ 48kbps port 9002 */
+	const char string4[] = "GET / HTTP/1.0\r\nHost: 217.74.72.12\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 217, 74, 72, 12);
+//	portserv = 9002;
+
+	/* Alex Jones - Infowars.com MP3 32kbps port 80 */
+	const char string5[] = "GET / HTTP/1.0\r\nHost: 50.7.241.126\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 50, 7, 241, 126);
+//	portserv = 80;
+
+	/* TechnoBase.FM MP3 128kbps port 80 */
+	const char string6[] = "GET / HTTP/1.0\r\nHost: 85.17.26.74\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 85, 17, 26, 74);
+//	portserv = 80;
+
+	/* French Kiss FM MP3 128kbps port 80 */
+	const char string7[] = "GET / HTTP/1.0\r\nHost: 80.190.234.235\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 80, 190, 234, 235);
+//	portserv = 80;
 
 	/* RMF AAC+ 48bps port 9000 */
-	const char string[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
-	portserv = 9000;
+	const char string8[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+//	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
+//	portserv = 9000;
 
 	/* SKY.FM FM MP3 96kbps port 80 */
-//	const char string[] = "GET /stream/1010 HTTP/1.0\r\nHost: scfire-dtc-aa04.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+	const char string9[] = "GET /stream/1010 HTTP/1.0\r\nHost: scfire-dtc-aa04.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	IP4_ADDR(&ipaddrserv, 207, 200, 96, 231); //
 //	portserv = 80;
 
 	/* 181.FM MP3 128kbps port 8002 */
-//	const char string[] = "GET /stream/1022 HTTP/1.0\r\nHost: scfire-ntc-aa05.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+	const char string10[] = "GET /stream/1022 HTTP/1.0\r\nHost: scfire-ntc-aa05.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	IP4_ADDR(&ipaddrserv, 207, 200, 96, 134);
 //	portserv = 80;
 
+	while(LPC_UART2->LSR & 0x01){		//wyczysc Rx FIFO
+		dummy=LPC_UART2->RBR;
+	}
+
+	UART_PrintStr("a - ZET AAC+ 32bps\r\n");
+	UART_PrintStr("b - EuropaFM AAC+ Romiania 32kbps\r\n");
+	UART_PrintStr("c - idobi Radio MP3 128kbps\r\n");
+	UART_PrintStr("d - RMF MAXXX AAC+ 48kbps\r\n");
+	UART_PrintStr("e - Alex Jones - Infowars.com MP3 32kbps\r\n");
+	UART_PrintStr("f - TechnoBase.FM MP3 128kbps\r\n");
+	UART_PrintStr("g - French Kiss FM MP3 128kbps\r\n");
+	UART_PrintStr("h - RMF AAC+ 48bps\r\n");
+	UART_PrintStr("i - SKY.FM FM MP3 96kbps\r\n");
+	UART_PrintStr("j - 181.FM MP3 128kbps\r\n");
+	cnt = 200;
+	while(!(LPC_UART2->LSR & 0x01)){			//czeka na znak
+		vTaskDelay(100/portTICK_RATE_MS);
+		cnt--;
+		if(cnt == 0)
+			break;							// timeout
+	}
+	if (cnt != 0){		// nie było timeoutu
+		dummy = LPC_UART2->RBR;
+	}else
+		dummy = 'a';
+
+	switch(dummy){
+	case 'a':
+		IP4_ADDR(&ipaddrserv, 89, 149, 227, 111);
+		portserv = 8050;
+		break;
+	case 'b':
+		IP4_ADDR(&ipaddrserv, 89, 238, 252, 146);
+		portserv = 7000;
+		break;
+	case 'c':
+		IP4_ADDR(&ipaddrserv, 50, 117, 115, 211);
+		portserv = 80;
+		break;
+	case 'd':
+		IP4_ADDR(&ipaddrserv, 217, 74, 72, 12);
+		portserv = 9002;
+		break;
+	case 'e':
+		IP4_ADDR(&ipaddrserv, 50, 7, 241, 126);
+		portserv = 80;
+		break;
+	case 'f':
+		IP4_ADDR(&ipaddrserv, 85, 17, 26, 74);
+		portserv = 80;
+		break;
+	case 'g':
+		IP4_ADDR(&ipaddrserv, 80, 190, 234, 235);
+		portserv = 80;
+		break;
+	case 'h':
+		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
+		portserv = 9000;
+		break;
+	case 'i':
+		IP4_ADDR(&ipaddrserv, 207, 200, 96, 231); //
+		portserv = 80;
+		break;
+	case 'j':
+		IP4_ADDR(&ipaddrserv, 207, 200, 96, 134);
+		portserv = 80;
+		break;
+	default:
+		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
+		portserv = 9000;
+		break;
+	}
+
+//	vSemaphoreCreateBinary(xVS_stopped);
+//	if(xVS_stopped != NULL){
+//		xSemaphoreGive(xVS_stopped);
+//	}else{
+//		// The semaphore was not created
+//	}
 
 	vSemaphoreCreateBinary(xDMAch0_Semaphore);
 	if(xDMAch0_Semaphore != NULL){
@@ -150,13 +249,47 @@ reconect:
 		}else{
 			UART_PrintStr("netcon connected\r\n");
 			LED_Off(0);
-			rc1 = netconn_write(NetConn, string, sizeof(string), NETCONN_NOCOPY);
+
+			switch(dummy){
+			case 'a':
+				rc1 = netconn_write(NetConn, string1, sizeof(string1), NETCONN_NOCOPY);
+				break;
+			case 'b':
+				rc1 = netconn_write(NetConn, string2, sizeof(string2), NETCONN_NOCOPY);
+				break;
+			case 'c':
+				rc1 = netconn_write(NetConn, string3, sizeof(string3), NETCONN_NOCOPY);
+				break;
+			case 'd':
+				rc1 = netconn_write(NetConn, string4, sizeof(string4), NETCONN_NOCOPY);
+				break;
+			case 'e':
+				rc1 = netconn_write(NetConn, string5, sizeof(string5), NETCONN_NOCOPY);
+				break;
+			case 'f':
+				rc1 = netconn_write(NetConn, string6, sizeof(string6), NETCONN_NOCOPY);
+				break;
+			case 'g':
+				rc1 = netconn_write(NetConn, string7, sizeof(string7), NETCONN_NOCOPY);
+				break;
+			case 'h':
+				rc1 = netconn_write(NetConn, string8, sizeof(string8), NETCONN_NOCOPY);
+				break;
+			case 'i':
+				rc1 = netconn_write(NetConn, string9, sizeof(string9), NETCONN_NOCOPY);
+				break;
+			case 'j':
+				rc1 = netconn_write(NetConn, string10, sizeof(string10), NETCONN_NOCOPY);
+				break;
+			default:
+				rc1 = netconn_write(NetConn, string8, sizeof(string8), NETCONN_NOCOPY);
+				break;
+			}
+//			rc1 = netconn_write(NetConn, string, sizeof(string), NETCONN_NOCOPY);
 			if(rc1 != ERR_OK){
 				UART_PrintStr("Ncon_write error: ");
 				PrintERR(rc1);
 			}
-//			netconn_write(NetConn, string2, sizeof(string2)-1, NETCONN_NOCOPY);
-//			netconn_write(NetConn, string3, sizeof(string3)-1, NETCONN_NOCOPY);
 
 			while((netconn_recv(NetConn, &inbuf)) == ERR_OK){
 				BufLen = netbuf_len(inbuf);
@@ -205,8 +338,12 @@ reconect:
 
 				if(RAM_buflen() == 0 && flaga == 1){					/* Bufor jest pusty - zatrzymaj zadanie VS */
 					UART_PrintStr("BFF EMPTY\r\n");
-					vTaskSuspend(xVsTskHandle);			// TODO: tutaj może następować deadlock jak VS przeją mutex od SPI
-														// po zatrzymaniu zadania VS nie da się odzysakać mutexa
+//					xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY);			/* poczekaj aż VS zwolni SPI1 */
+					vTaskSuspend(xVsTskHandle);
+//					xSemaphoreGive(xSPI1_Mutex);						/* Oddaj mutex */
+
+//					vs_write_reg(VS_MODE, SM_SDINEW | SM_RESET);
+
 					flaga = 0;
 					resetbuff();						/* Resetuj bufor */
 				}
@@ -259,9 +396,11 @@ reconect:
 
 
 				if(RAM_buflen()>120*1024 && flaga == 0){	/* Bufor jest pełny */
+//					vs_write_reg(VS_MODE, SM_SDINEW | SM_RESET);
 					vTaskResume(xVsTskHandle);				/* Uruchom zadanie dekodera */
 					flaga=1;								/* Ustaw flagę uruchomienia zadania dekodera */
 				}
+
 				LED_Toggle(1);
 			}
 			UART_PrintStr("Recv error: ");

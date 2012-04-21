@@ -322,10 +322,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send high address */
 				SPI1_FIFO_write(0xFF & head);						/* Send low address */
 				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM1_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM1_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+len;
+					UART_PrintStr("No semph ch0 1\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -334,9 +340,13 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send high address */
 				SPI1_FIFO_write(0xFF & head);						/* Send low address */
 				StartSpi1TxDmaTransfer(data, RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM1_HIGH();									/* Deselect ram chip */
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM1_HIGH();
+					UART_PrintStr("No semph ch0 2\r\n");
 				}
 				written_data = (RAM_CHIPSIZE-head);
 				head = RAM_CHIPSIZE;								/* Set head at start of second RAM */
@@ -346,10 +356,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send low address */
 				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM2_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+(len-written_data);
+					UART_PrintStr("No semph ch0 3\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -360,10 +376,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send low address */
 				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM2_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+len;
+					UART_PrintStr("No semph ch0 4\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -372,9 +394,13 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send low address */
 				StartSpi1TxDmaTransfer(data, 2*RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM2_HIGH();									/* Deselect ram chip */
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM2_HIGH();									/* Deselect ram chip */
+					UART_PrintStr("No semph ch0 5\r\n");
 				}
 				written_data = (2*RAM_CHIPSIZE-head);
 				head = 2*RAM_CHIPSIZE;								/* Set head at start of third RAM */
@@ -384,10 +410,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - 2*RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - 2*RAM_CHIPSIZE));			/* Send low address */
 				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM3_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM3_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+(len-written_data);
+					UART_PrintStr("No semph ch0 6\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -398,10 +430,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - 2*RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - 2*RAM_CHIPSIZE));			/* Send low address */
 				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM3_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM3_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+len;
+					UART_PrintStr("No semph ch0 7\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -410,9 +448,13 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - 2*RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - 2*RAM_CHIPSIZE));			/* Send low address */
 				StartSpi1TxDmaTransfer(data, 3*RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM3_HIGH();									/* Deselect ram chip */
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM3_HIGH();									/* Deselect ram chip */
+					UART_PrintStr("No semph ch0 8\r\n");
 				}
 				written_data = (3*RAM_CHIPSIZE-head);
 				head = 3*RAM_CHIPSIZE;								/* Set head at start of third RAM */
@@ -422,10 +464,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - 3*RAM_CHIPSIZE) >> 8));		/* Send high address - można dać 0 */
 				SPI1_FIFO_write(0xFF & (head - 3*RAM_CHIPSIZE));			/* Send low address - można dać 0 */
 				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM4_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM4_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+(len-written_data);
+					UART_PrintStr("No semph ch0 9\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -436,12 +484,20 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - 3*RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - 3*RAM_CHIPSIZE));			/* Send low address */
 				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM4_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
-					if(RAM_bufhead == 4*RAM_CHIPSIZE)
+					if(RAM_bufhead >= 4*RAM_CHIPSIZE)
 						RAM_bufhead = 0;
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM4_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+len;
+					if(RAM_bufhead >= 4*RAM_CHIPSIZE)
+						RAM_bufhead = 0;
+					UART_PrintStr("No semph ch0 10\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -450,9 +506,13 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - 3*RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - 3*RAM_CHIPSIZE));			/* Send low address */
 				StartSpi1TxDmaTransfer(data, 4*RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM3_HIGH();									/* Deselect ram chip */
+					CS_RAM4_HIGH();									/* Deselect ram chip */
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM4_HIGH();									/* Deselect ram chip */
+					UART_PrintStr("No semph ch0 11\r\n");
 				}
 				written_data = (4*RAM_CHIPSIZE-head);
 				head = 0;								/* Set head at start of third RAM */
@@ -462,10 +522,16 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send high address - można dać 0 */
 				SPI1_FIFO_write(0xFF & head);						/* Send low address - można dać 0 */
 				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, portMAX_DELAY) == pdTRUE){
+				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM1_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
+					xSemaphoreGive(xSPI1_Mutex);
+				}else{
+					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+					CS_RAM1_HIGH();									/* Deselect ram chip */
+					RAM_bufhead = head+(len-written_data);
+					UART_PrintStr("No semph ch0 12\r\n");
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -474,433 +540,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 		UART_PrintStr("bufput mutex timeout\r\n");
 	}
 }
-/**
- * Puts samples to RAM buffer
- *
- * @param s data to buffer
- * @patam len length of data
- */
-//__SECTION(data,RAM2)
-//void RAM_bufputs2(char *s, uint16_t len) {
-//	uint32_t head;
-//
-////	CoEnterMutexSection(SPI_Mutex);
-//	if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
-//		while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//		head = RAM_bufhead;
-//
-//		if (head < RAM_CHIPSIZE) { // zapis do pierwszej pamięci
-//			CS_RAM1_LOW();
-//			SPI1_FIFO_write(WRITE);
-//			SPI1_FIFO_write(0xFF & (head >> 8));
-//			SPI1_FIFO_write(0xFF & head);
-//
-//			while ((len != 0) && (head < RAM_CHIPSIZE)) {
-//				SPI1_FIFO_write(*s++);
-//				head++;
-//				len--;
-//			}
-//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//			CS_RAM1_HIGH();
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do drugiej pamięci
-//				CS_RAM2_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM2_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
-//				CS_RAM3_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM3_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
-//				CS_RAM4_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM4_HIGH();
-//
-//				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
-//					head = 0; //warunku head < 2*RAM_CHIPSIZE to trezba przeskoczyć na początek bufora
-//				}
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek pierwszej pamieci
-//				CS_RAM1_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & (head >> 8));
-//				SPI1_FIFO_write(0xFF & head);
-//
-//				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM1_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//		} else if ((RAM_CHIPSIZE <= head) && (head < 2 * RAM_CHIPSIZE)) { // jestemy w obszarze 2 pamięci
-//
-//			CS_RAM2_LOW(); // zapis do 2 pamięci
-//			SPI1_FIFO_write(WRITE);
-//			SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); //
-//			SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
-//
-//			while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-//				SPI1_FIFO_write(*s++);
-//				head++;
-//				len--;
-//			}
-//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//			CS_RAM2_HIGH();
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
-//				CS_RAM3_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM3_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
-//				CS_RAM4_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM4_HIGH();
-//
-//				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
-//					head = 0; //warunku head < 2*RAM_CHIPSIZE to trezba przeskoczyć na początek bufora
-//				}
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek 1 pamieci
-//				CS_RAM1_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & (head >> 8));
-//				SPI1_FIFO_write(0xFF & head);
-//
-//				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM1_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 2 pamięci
-//				CS_RAM2_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM2_HIGH();
-//				/* tutaj program nie powinien dojsc */
-//				if (head >= RAM_BUFSIZE) //jezeli powodem wyjcia w while było niespełnienie
-//					head = 0; //warunku head < 2*RAM_CHIPSIZE to trezba przeskoczyć na początek bufora
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//		} else if ((2 * RAM_CHIPSIZE <= head) && (head < 3 * RAM_CHIPSIZE)) {
-//
-//			CS_RAM3_LOW(); // zapis do 3 pamięci
-//			SPI1_FIFO_write(WRITE);
-//			SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//			SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
-//
-//			while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-//				SPI1_FIFO_write(*s++);
-//				head++;
-//				len--;
-//			}
-//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//			CS_RAM3_HIGH();
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
-//				CS_RAM4_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM4_HIGH();
-//
-//				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
-//					head = 0; //warunku head < 2*RAM_CHIPSIZE to trezba przeskoczyć na początek bufora
-//				}
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek 1 pamieci
-//				CS_RAM1_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & (head >> 8));
-//				SPI1_FIFO_write(0xFF & head);
-//
-//				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM1_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 2 pamięci
-//				CS_RAM2_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM2_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
-//
-//				CS_RAM3_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM3_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//		} else if (3 * RAM_CHIPSIZE <= head) {
-//
-//			CS_RAM4_LOW();
-//			SPI1_FIFO_write(WRITE);
-//			SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//			SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
-//
-//			while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-//				SPI1_FIFO_write(*s++);
-//				head++;
-//				len--;
-//			}
-//			while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//			CS_RAM4_HIGH();
-//
-//			if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
-//				head = 0; //warunku head < 4*RAM_CHIPSIZE to trezba przeskoczyć na początek bufora
-//			}
-//
-//			if (len > 0) { // jeżeli dane się nie zmieciły to zapisz początek 1 pamieci
-//				CS_RAM1_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & (head >> 8));
-//				SPI1_FIFO_write(0xFF & head);
-//
-//				while ((len != 0) && (head < RAM_CHIPSIZE)) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM1_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 2 pamięci
-//
-//				CS_RAM2_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (2 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM2_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 3 pamięci
-//
-//				CS_RAM3_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 2 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 2 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (3 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM3_HIGH();
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//
-//			if (len > 0) { // jeżeli dane sie nie zmieciły to zapisz do 4 pamięci
-//
-//				CS_RAM4_LOW();
-//				SPI1_FIFO_write(WRITE);
-//				SPI1_FIFO_write(0xFF & ((head - 3 * RAM_CHIPSIZE) >> 8)); // adres powinien wtuaj wynosic 0
-//				SPI1_FIFO_write(0xFF & (head - 3 * RAM_CHIPSIZE));
-//
-//				while ((len != 0) && (head < (4 * RAM_CHIPSIZE))) {
-//					SPI1_FIFO_write(*s++);
-//					head++;
-//					len--;
-//				}
-//				while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//				CS_RAM4_HIGH();
-//
-//				if (head >= RAM_BUFSIZE) { //jezeli powodem wyjcia w while było niespełnienie
-//					head = 0; //warunku head < 2*RAM_CHIPSIZE to trezba przeskoczyć na początek bufora
-//				}
-//			} else {
-//				RAM_bufhead = head;
-//				xSemaphoreGive(xSPI1_Mutex);
-////				CoLeaveMutexSection(SPI_Mutex);
-//				return;
-//			}
-//		}
-//
-//		RAM_bufhead = head;
-//		xSemaphoreGive(xSPI1_Mutex);
-////		CoLeaveMutexSection(SPI_Mutex);
-//	}
-//	return;
-//}
+
 /**
  * Gets samples to audio buffer
  *
@@ -1070,7 +710,7 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM4_HIGH();
 					RAM_buftail = tail + len;						/* Update tail of circular buffer */
-					if(RAM_buftail == 4*RAM_CHIPSIZE){
+					if(RAM_buftail >= 4*RAM_CHIPSIZE){
 						RAM_buftail = 0;
 					}
 					xSemaphoreGive(xSPI1_Mutex);					/* Release SSP1 resource */
@@ -1110,383 +750,6 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 	}else{
 		UART_PrintStr("bufget mutex timeout\r\n");
 	}
-}
-/**
- * Gets samples to audio buffer
- *
- * @param buf buffer
- * @patam len length of data to get
- */
-void RAM_bufget2(uint8_t *buf, uint16_t len) {
-	uint32_t tail;
-	uint8_t dummy;
-
-	if (xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE) {
-		while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-		while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )			/* Celan Rx FIFO */
-		{
-			dummy = LPC_SSP1->DR;
-		}
-
-		tail = RAM_buftail;
-		if (tail < RAM_CHIPSIZE) { // odczyt 1 pamięci
-			CS_RAM1_LOW();
-			SPI1_Write(READ);
-			SPI1_Write(0xFF & (tail >> 8));
-			SPI1_Write(0xFF & tail);
-			while ((len != 0) && (tail < RAM_CHIPSIZE)) {
-				*buf++ = SPI1_Write(DUMMY_BYTE);
-				tail++;
-				len--;
-			}
-			CS_RAM1_HIGH();
-
-			if (len > 0) { //odczyt 2 pamięci
-				CS_RAM2_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (2 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM2_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 3 pamięci
-				CS_RAM3_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 2 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 2 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (3 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM3_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-			if (len > 0) { //odczyt 4 pamięci
-				CS_RAM4_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 3 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 3 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (4 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM4_HIGH();
-
-				if (tail >= RAM_BUFSIZE) {
-					tail = 0;
-				}
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt do 1 pamięci
-				CS_RAM1_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & (tail >> 8));
-				SPI1_Write(0xFF & tail);
-				while ((len != 0) && (tail < RAM_CHIPSIZE)) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM1_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-		} else if ((RAM_CHIPSIZE <= tail) && (tail < 2 * RAM_CHIPSIZE)) { // odczyt 2 pamieci
-
-			CS_RAM2_LOW();
-			SPI1_Write(READ);
-			SPI1_Write(0xFF & ((tail - RAM_CHIPSIZE) >> 8));
-			SPI1_Write(0xFF & (tail - RAM_CHIPSIZE));
-			while ((len != 0) && (tail < (2 * RAM_CHIPSIZE))) {
-				*buf++ = SPI1_Write(DUMMY_BYTE);
-				tail++;
-				len--;
-			}
-			CS_RAM2_HIGH();
-
-			if (len > 0) { //odczyt 3 pamięci
-				CS_RAM3_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 2 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 2 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (3 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM3_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-			if (len > 0) { //odczyt 4 pamięci
-				CS_RAM4_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 3 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 3 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (4 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM4_HIGH();
-
-				if (tail >= RAM_BUFSIZE) {
-					tail = 0;
-				}
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-			if (len > 0) { //odczyt 1 pamięci
-				CS_RAM1_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & (tail >> 8));
-				SPI1_Write(0xFF & tail);
-				while ((len != 0) && (tail < RAM_CHIPSIZE)) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM1_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 2 pamięci
-				CS_RAM2_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (2 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM2_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-		} else if ((2 * RAM_CHIPSIZE <= tail) && (tail < 3 * RAM_CHIPSIZE)) { //odczyt 3 pamieci
-			CS_RAM3_LOW();
-			SPI1_Write(READ);
-			SPI1_Write(0xFF & ((tail - 2 * RAM_CHIPSIZE) >> 8));
-			SPI1_Write(0xFF & (tail - 2 * RAM_CHIPSIZE));
-			while ((len != 0) && (tail < (3 * RAM_CHIPSIZE))) {
-				*buf++ = SPI1_Write(DUMMY_BYTE);
-				tail++;
-				len--;
-			}
-			CS_RAM3_HIGH();
-
-			if (len > 0) { //odczyt 4 pamięci
-				CS_RAM4_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 3 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 3 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (4 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM4_HIGH();
-
-				if (tail >= RAM_BUFSIZE) {
-					tail = 0;
-				}
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 1 pamięci
-				CS_RAM1_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & (tail >> 8));
-				SPI1_Write(0xFF & tail);
-				while ((len != 0) && (tail < RAM_CHIPSIZE)) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM1_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 2 pamięci
-				CS_RAM2_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (2 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM2_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 3 pamięci
-				CS_RAM3_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 2 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 2 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (3 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM3_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-		} else if (3 * RAM_CHIPSIZE <= tail) { // odczyt z 4 pamięci
-
-			CS_RAM4_LOW();
-			SPI1_Write(READ);
-			SPI1_Write(0xFF & ((tail - 3 * RAM_CHIPSIZE) >> 8));
-			SPI1_Write(0xFF & (tail - 3 * RAM_CHIPSIZE));
-			while ((len != 0) && (tail < (4 * RAM_CHIPSIZE))) {
-				*buf++ = SPI1_Write(DUMMY_BYTE);
-				tail++;
-				len--;
-			}
-			CS_RAM4_HIGH();
-
-			if (tail >= RAM_BUFSIZE) {
-				tail = 0;
-			}
-			if (len > 0) { //odczyt 1 pamięci
-				CS_RAM1_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & (tail >> 8));
-				SPI1_Write(0xFF & tail);
-				while ((len != 0) && (tail < RAM_CHIPSIZE)) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM1_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 2 pamięci
-				CS_RAM2_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (2 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM2_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 3 pamięci
-				CS_RAM3_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 2 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 2 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (3 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM3_HIGH();
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-
-			if (len > 0) { //odczyt 4 pamięci
-				CS_RAM4_LOW();
-				SPI1_Write(READ);
-				SPI1_Write(0xFF & ((tail - 3 * RAM_CHIPSIZE) >> 8));
-				SPI1_Write(0xFF & (tail - 3 * RAM_CHIPSIZE));
-				while ((len != 0) && (tail < (4 * RAM_CHIPSIZE))) {
-					*buf++ = SPI1_Write(DUMMY_BYTE);
-					tail++;
-					len--;
-				}
-				CS_RAM4_HIGH();
-
-				if (tail >= RAM_BUFSIZE) {
-					tail = 0;
-				}
-			} else {
-				RAM_buftail = tail;
-				xSemaphoreGive(xSPI1_Mutex);
-				//			CoLeaveMutexSection(SPI_Mutex);
-				return;
-			}
-		}
-		RAM_buftail = tail;
-		xSemaphoreGive(xSPI1_Mutex);
-		//	CoLeaveMutexSection(SPI_Mutex);
-	}else{
-		UART_PrintStr("bufget mutex timeout\r\n");
-	}
-	return;
 }
 
 /**

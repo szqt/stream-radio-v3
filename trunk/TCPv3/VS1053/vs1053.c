@@ -1229,7 +1229,7 @@ void vs_write_patch(const uint8_t *adr, const uint16_t *data, uint16_t patch_len
  */
 void vs_set_volume(uint8_t volume){
 //	CoEnterMutexSection(SPI0_Mutex);
-	vs_write_reg(VS_VOL, ((255-volume)<<8) | (255-volume));
+	vs_write_reg_NoDREQ(VS_VOL, ((255-volume)<<8) | (255-volume));
 //	CoLeaveMutexSection(SPI0_Mutex);
 }
 /**
@@ -1241,7 +1241,7 @@ void vs_init(void){
 	SPI_Config();
 	delay_ms(10);
 	vs_write_reg(VS_MODE, SM_SDINEW);
-	vs_write_reg(VS_VOL, 0x2020);
+	vs_write_reg(VS_VOL, 0x0404);
 	vs_write_reg(VS_BASS, 0x0F5A);//TREBFREQ = 15000Hz, BASSAMP =5, BASSFREQ 100Hz
 	status = vs_read_reg(VS_STATUS);
 	vs_write_reg(VS_CLOCKF, VS_SC_ADD_2X | VS_SC_MUL_4X);		/* CLKI = 4x12.288MHz = 49.152MHz, 5x12.288MHz = 61.44MHz */
