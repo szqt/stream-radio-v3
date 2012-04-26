@@ -14,8 +14,9 @@ extern xSemaphoreHandle xDMAch1_Semaphore;
 extern xSemaphoreHandle xDMAch2_Semaphore;
 
 void DMA_Config(void){
-	uint8_t dane[] = {0x02, 0x00, 0x00, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5};
+	uint8_t dana;
 	uint8_t TransferSize = 16;
+	NVIC_DisableIRQ(DMA_IRQn);
 	LPC_SC->PCONP |= (1<<29); 					/* Power on DMA module */
 	LPC_SSP1->DMACR |=(1<<1);					/* Enable DMA for the SSP1 transmit FIFO */
 	LPC_SSP1->DMACR |=(1<<0);					/* Enable DMA for the SSP1 receive FIFO */
@@ -25,9 +26,9 @@ void DMA_Config(void){
 	LPC_GPDMA->DMACIntErrClr |= 0xFF;
 	LPC_GPDMA->DMACIntTCClear |= 0xFF;
 
-	/* DMA CHANNEL 0 - transfer to SPI external RAM */
+	/* DMA CHANNEL 0 - transfer to SPI external RAM - zmiana na kanał 4*/
 	LPC_GPDMACH0->DMACCLLI = 0;								/* Clear Linked List - don't use */
-	LPC_GPDMACH0->DMACCSrcAddr = (uint32_t)&dane[0];			/* Set source address */
+	LPC_GPDMACH0->DMACCSrcAddr = (uint32_t)&dana;			/* Set source address */
 	LPC_GPDMACH0->DMACCDestAddr = (uint32_t)&LPC_SSP1->DR;	/* Set destination address */
 	LPC_GPDMACH0->DMACCControl = TransferSize 			/* Set transfer size */
 								| (1<<12)				/* Source burst size - 4 */
@@ -44,7 +45,7 @@ void DMA_Config(void){
 
 	/* DMA CHANNEL 1 - transfer to VS decoder via SPI (SSP0) */
 	LPC_GPDMACH1->DMACCLLI = 0;								/* Clear Linked List - don't use */
-	LPC_GPDMACH1->DMACCSrcAddr = (uint32_t)&dane[0];			/* Set source address */
+	LPC_GPDMACH1->DMACCSrcAddr = (uint32_t)&dana;			/* Set source address */
 	LPC_GPDMACH1->DMACCDestAddr = (uint32_t)&LPC_SSP0->DR;	/* Set destination address */
 	LPC_GPDMACH1->DMACCControl = 32 					/* Set transfer size */
 								| (1<<12)				/* Source burst size - 4 */
@@ -62,7 +63,7 @@ void DMA_Config(void){
 	/* DMA CHANNEL 2 - transfer from SPI (external RAM) to memory */
 	LPC_GPDMACH2->DMACCLLI = 0;								/* Clear Linked List - don't use */
 	LPC_GPDMACH2->DMACCSrcAddr = (uint32_t)&LPC_SSP1->DR;			/* Set source address */
-	LPC_GPDMACH2->DMACCDestAddr = (uint32_t)&dane[0];	/* Set destination address */
+	LPC_GPDMACH2->DMACCDestAddr = (uint32_t)&dana;	/* Set destination address */
 	LPC_GPDMACH2->DMACCControl = 0;				/* Reset register */
 	LPC_GPDMACH2->DMACCControl = 0 				/* Set transfer size */
 								| (0<<12)		/* Source burst size - 4 */
@@ -80,7 +81,7 @@ void DMA_Config(void){
 
 	/* DMA CHANNEL 3 - transfer dummy to SPI SSP1 */
 	LPC_GPDMACH3->DMACCLLI = 0;								/* Clear Linked List - don't use */
-	LPC_GPDMACH3->DMACCSrcAddr = (uint32_t)&dane[0];			/* Set source address */
+	LPC_GPDMACH3->DMACCSrcAddr = (uint32_t)&dana;			/* Set source address */
 	LPC_GPDMACH3->DMACCDestAddr = (uint32_t)&LPC_SSP1->DR;	/* Set destination address */
 	LPC_GPDMACH3->DMACCControl = TransferSize 			/* Set transfer size */
 								| (1<<12)				/* Source burst size - 4 */
@@ -103,7 +104,7 @@ void DMA_Config(void){
 void StartSpi1TxDmaTransfer(char *data, uint16_t TransferSize){
 
 	LPC_GPDMACH0->DMACCSrcAddr = (uint32_t)data;		/* Set source address */
-	LPC_GPDMACH0->DMACCControl = TransferSize			/* Set transfer size */
+	LPC_GPDMACH0->DMACCControl = (0x0FFF & TransferSize)	/* Set transfer size */
 								| (1<<12)				/* Source burst size - 4 */
 								| (1<<15)				/* Destination burst size - 4 */
 								| (0<<18)				/* Source transfer width - Byte (8-bit) */
@@ -118,7 +119,7 @@ void StartSpi1RxDmaTransfer(uint8_t *buffer, uint16_t TransferSize){
 
 	LPC_GPDMACH2->DMACCSrcAddr = (uint32_t)&LPC_SSP1->DR;	/* Set source address */
 	LPC_GPDMACH2->DMACCDestAddr = (uint32_t)buffer;		/* Set destination address */
-	LPC_GPDMACH2->DMACCControl = TransferSize			/* Set transfer size */
+	LPC_GPDMACH2->DMACCControl = (0x0FFF & TransferSize)	/* Set transfer size */
 								| (0<<12)				/* Source burst size - 4 */
 								| (1<<15)				/* Destination burst size - 4 */
 								| (0<<18)				/* Source transfer width - Byte (8-bit) */
@@ -132,7 +133,7 @@ void StartSpi1RxDmaTransfer(uint8_t *buffer, uint16_t TransferSize){
 void StartSpi1TxDmaDummyTransfer(uint8_t *data, uint16_t TransferSize){
 
 	LPC_GPDMACH3->DMACCSrcAddr = (uint32_t)data;		/* Set source address */
-	LPC_GPDMACH3->DMACCControl = TransferSize			/* Set transfer size */
+	LPC_GPDMACH3->DMACCControl = (0x0FFF & TransferSize)	/* Set transfer size */
 								| (1<<12)				/* Source burst size - 4 */
 								| (1<<15)				/* Destination burst size - 4 */
 								| (0<<18)				/* Source transfer width - Byte (8-bit) */
@@ -163,7 +164,7 @@ void DMA_IRQHandler(void){
 	static signed portBASE_TYPE xHigherPriorityTaskWoken;
 
 	status = LPC_GPDMA->DMACIntTCStat;
-	if((status & 0xFF) > 0){
+	if((status & 0xFF) != 0){
 		LPC_GPDMA->DMACIntTCClear = status;
 		if(status & 0x01){					/* Channel 0 int */
 			LPC_GPDMACH0->DMACCConfig &= ~(1<0);	/* Disable DMA channel 0 */
@@ -177,10 +178,14 @@ void DMA_IRQHandler(void){
 			LPC_GPDMACH2->DMACCConfig &= ~(1<0);	/* Disable DMA channel 2 */
 			xSemaphoreGiveFromISR( xDMAch2_Semaphore, &xHigherPriorityTaskWoken );;
 		}
+//		if(status & 0x10){					/* Channel 4 int */
+//			LPC_GPDMACH4->DMACCConfig &= ~(1<0);	/* Disable DMA channel 0 */
+//			xSemaphoreGiveFromISR( xDMAch0_Semaphore, &xHigherPriorityTaskWoken );
+//		}
 
 	}
 	status = LPC_GPDMA->DMACRawIntErrStat;
-	if ((status & 0xFF)>0){
+	if ((status & 0xFF) != 0){
 		LPC_GPDMA->DMACIntErrClr = status;
 		//error interrupt request
 		if(status&0x01){					/* Channel 0 int */
@@ -195,6 +200,10 @@ void DMA_IRQHandler(void){
 			LPC_GPDMACH2->DMACCConfig &= ~(1<0);	/* Disable DMA channel 2 */
 			xSemaphoreGiveFromISR( xDMAch2_Semaphore, &xHigherPriorityTaskWoken );;
 		}
+//		if(status&0x10){					/* Channel 4 int */
+//			LPC_GPDMACH4->DMACCConfig &= ~(1<0);	/* Disable DMA channel 0 */
+//			xSemaphoreGiveFromISR( xDMAch0_Semaphore, &xHigherPriorityTaskWoken );
+//		}
 	}
 	if (xHigherPriorityTaskWoken == pdTRUE) {
 		portYIELD();
