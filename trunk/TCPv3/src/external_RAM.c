@@ -265,40 +265,6 @@ while(1){
 //	CS_RAM2_HIGH();
 }
 
-//void DMA_Config(void){
-//	uint8_t dane[] = {0x02, 0x00, 0x00, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5};
-//	uint8_t TransferSize = 16;
-//	LPC_SC->PCONP |= (1<<29); 					/* Power on DMA module */
-//	LPC_SSP1->DMACR |=(1<<1);					/* Enable DMA for the SSP1 transmit FIFO */
-//	LPC_GPDMA->DMACConfig |= (1<<0);			/* Enable DMA Controller */
-//
-//	LPC_GPDMA->DMACIntErrClr |= 0xFF;
-//	LPC_GPDMA->DMACIntTCClear |= 0xFF;
-//
-//	LPC_GPDMACH0->DMACCLLI = 0;								/* Clear Linked List - don't use */
-//	LPC_GPDMACH0->DMACCSrcAddr = (uint32_t)&dane[0];			/* Set source address */
-//	LPC_GPDMACH0->DMACCDestAddr = (uint32_t)&LPC_SSP1->DR;	/* Set destination address */
-//	LPC_GPDMACH0->DMACCControl = TransferSize 			/* Set transfer size */
-//								| (1<<12)				/* Source burst size - 4 */
-//								| (1<<15)				/* Destination burst size - 4 */
-//								| (0<<18)				/* Source transfer width - Byte (8-bit) */
-//								| (0<<21)				/* Destination transfer width - Byte (8-bit) */
-//								| (1<<26)				/* Source address is incremented */
-//								| (0<<31);				/* Enable Interrupt */
-//
-//	LPC_GPDMACH0->DMACCConfig |= (2<<6)		/* SSP1 Tx as DMA request peripheral */
-//							|(1<<11)		/* Memory to peripheral transfer */
-//							|(1<<14)		/* Enable error interrupt */
-//							|(1<<15);		/* Enable interrupt */
-//
-//	LPC_GPDMACH0->DMACCConfig |= 1;	/* Enable DMA channel */
-////	NVIC_SetPriority(DMA_IRQn, 5);
-////	NVIC_EnableIRQ(DMA_IRQn);
-//
-//	LPC_GPDMA->DMACSoftSReq |= (1<<2);		/* Transfer request */
-//
-//}
-
 
 /**
  * Puts samples to RAM buffer
@@ -311,6 +277,11 @@ void RAM_bufputs(char *data, uint16_t len) {
 	uint16_t written_data;
 	if(len==0){
 		return;
+	}else if(len>4095){
+		UART_PrintStr("Bbufputs to big transfer size: ");
+		UART_PrintNum(len);
+		UART_PrintStr("\r\n");
+		len=4095;
 	}
 	if (xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE) {
 		head = RAM_bufhead;
@@ -322,7 +293,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send high address */
 				SPI1_FIFO_write(0xFF & head);						/* Send low address */
 				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM1_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
@@ -332,6 +303,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM1_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
 					UART_PrintStr("No semph ch0 1\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -340,13 +312,14 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send high address */
 				SPI1_FIFO_write(0xFF & head);						/* Send low address */
 				StartSpi1TxDmaTransfer(data, RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM1_HIGH();									/* Deselect ram chip */
 				}else{
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM1_HIGH();
 					UART_PrintStr("No semph ch0 2\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 				}
 				written_data = (RAM_CHIPSIZE-head);
 				head = RAM_CHIPSIZE;								/* Set head at start of second RAM */
@@ -356,7 +329,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send low address */
 				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
+				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
@@ -366,6 +339,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
 					UART_PrintStr("No semph ch0 3\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -376,7 +350,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send high address */
 				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send low address */
 				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
@@ -386,6 +360,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
 					UART_PrintStr("No semph ch0 4\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -401,6 +376,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM2_HIGH();									/* Deselect ram chip */
 					UART_PrintStr("No semph ch0 5\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 				}
 				written_data = (2*RAM_CHIPSIZE-head);
 				head = 2*RAM_CHIPSIZE;								/* Set head at start of third RAM */
@@ -420,6 +396,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM3_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
 					UART_PrintStr("No semph ch0 6\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -440,6 +417,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM3_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+len;
 					UART_PrintStr("No semph ch0 7\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -455,6 +433,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM3_HIGH();									/* Deselect ram chip */
 					UART_PrintStr("No semph ch0 8\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 				}
 				written_data = (3*RAM_CHIPSIZE-head);
 				head = 3*RAM_CHIPSIZE;								/* Set head at start of third RAM */
@@ -474,6 +453,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM4_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
 					UART_PrintStr("No semph ch0 9\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}
@@ -498,6 +478,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					if(RAM_bufhead >= 4*RAM_CHIPSIZE)
 						RAM_bufhead = 0;
 					UART_PrintStr("No semph ch0 10\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}else{
@@ -513,6 +494,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
 					CS_RAM4_HIGH();									/* Deselect ram chip */
 					UART_PrintStr("No semph ch0 11\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 				}
 				written_data = (4*RAM_CHIPSIZE-head);
 				head = 0;								/* Set head at start of third RAM */
@@ -532,6 +514,7 @@ void RAM_bufputs(char *data, uint16_t len) {
 					CS_RAM1_HIGH();									/* Deselect ram chip */
 					RAM_bufhead = head+(len-written_data);
 					UART_PrintStr("No semph ch0 12\r\n");
+					DMA_Config();									/* Reconfigure DMA */
 					xSemaphoreGive(xSPI1_Mutex);
 				}
 			}

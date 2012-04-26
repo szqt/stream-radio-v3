@@ -151,7 +151,7 @@ void shoutcast(void *pdata) {
 	if (cnt != 0){		// nie było timeoutu
 		dummy = LPC_UART2->RBR;
 	}else
-		dummy = 'a';
+		dummy = 'h';
 
 	switch(dummy){
 	case 'a':
