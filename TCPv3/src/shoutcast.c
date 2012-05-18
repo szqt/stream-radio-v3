@@ -458,7 +458,7 @@ void PrintERR(err_t rc){
 		UART_PrintStr("ERR_ABRT - Connection aborted.\r\n");
 		break;
 	case ERR_RST:
-		UART_PrintStr("ERR_RST - Connection reset.\r\n");
+		UART_PrintStr("ERR_RST - Connection reset.\r\n");  /* Server is refuse to be connect */
 		break;
 	case ERR_CLSD:
 		UART_PrintStr("ERR_CLSD - Connection closed.\r\n");
