@@ -699,7 +699,7 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 					xSemaphoreGive(xSPI1_Mutex);					/* Release SSP1 resource */
 				}
 			}else{
-				CS_RAM3_LOW();				/* Select fourth ram chip */
+				CS_RAM4_LOW();				/* Select fourth ram chip */
 				SPI1_Write(READ);
 				SPI1_Write(0xFF & ((tail - 3*RAM_CHIPSIZE) >> 8));
 				SPI1_Write(0xFF & (tail - 3*RAM_CHIPSIZE));
@@ -709,7 +709,7 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 				StartSpi1TxDmaDummyTransfer(&dummy, 4*RAM_CHIPSIZE-tail+1);	/* Initialize DMA transfer dummy byte -> SSP Tx FIFO */
 				if(xSemaphoreTake(xDMAch2_Semaphore, portMAX_DELAY) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM3_HIGH();
+					CS_RAM4_HIGH();
 				}
 
 				read_data = 4*RAM_CHIPSIZE - tail;
