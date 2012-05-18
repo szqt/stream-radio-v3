@@ -395,7 +395,7 @@ reconect:
 				}
 
 
-				if(RAM_buflen()>120*1024 && flaga == 0){	/* Bufor jest pełny */
+				if(RAM_buflen()>256*1024 && flaga == 0){	/* Bufor jest pełny */
 //					vs_write_reg(VS_MODE, SM_SDINEW | SM_RESET);
 					vTaskResume(xVsTskHandle);				/* Uruchom zadanie dekodera */
 					flaga=1;								/* Ustaw flagę uruchomienia zadania dekodera */

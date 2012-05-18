@@ -8,28 +8,33 @@
 #ifndef EXTERNAL_RAM_H_
 #define EXTERNAL_RAM_H_
 
-#define RAM_CHIPSIZE	32*1024
-#define RAM_BUFSIZE		4*RAM_CHIPSIZE		/* External RAM space in Bytes */
+/*--- External serial ram FM25H20 memory space ---*/
+#define RAM_CHIPSIZE	256*1024
+#define RAM_BUFSIZE		2*RAM_CHIPSIZE		/* External RAM space in Bytes */
 
-/*--- External SRAM instructions ---*/
-#define	READ		0x03	/* Read data from memory array beginning at selected address */
-#define WRITE		0x02	/* Write data to memory array beginning at selected address */
-#define RDSR		0x05	/* Read STATUS register */
-#define	WRSR		0x01	/* Write STATUS register  */
+/*--- External FRAM instructions ---*/
+#define	WREN		0x06	/* Enable write operation (set WEL bit in Status Register) */
+#define WRDI		0x04	/* Disable all write activity (clear WEL bit) */
+#define RDSR		0x05	/* Read Status Register */
+#define	WRSR		0x01	/* Write Status Register  */
+#define READ		0x03	/* Read memory data */
+#define WRITE		0x02	/* Write memory data */
+#define SLEEP		0xB9	/* Enter sleep mode */
 
-/*--- SRAM modes of  operation ---*/
-#define BYTE_MODE	0x00	/* Byte mode */
-#define	PAGE_MODE	0x80	/* Page mode */
-#define SEQ_MODE	0x40	/* Sequential mode */
+/*--- FRAM block memory protection ---*/
+#define NO_PROTECT		0x00	/* None */
+#define	MODE1_PROTECT	0x04	/* Protect block 0x30000 - 0x3FFFF */
+#define MODE2_PROTECT	0x08	/* Protect block 0x20000 - 0x3FFFF */
+#define MODE3_PROTECT	0x0C	/* Protect all memory */
 
-/*--- HOLD function ---*/
-#define	HOLD_OFF	0x01	/* Disable the Hold pin functionality */
-#define	HOLD_ON		0x00	/* Enable the Hold pin functionality */
+/*--- FRAM Write protection pin --*/
+#define SET_WPEN	0x80	/* /W pin controls write access to the Status Register */
+#define CLR_WPEN	0x00	/* /W pin is ignored */
+
 
 #define DUMMY_BYTE	0x00
 
 /*--- SPI1 ---*/
-
 #define SSPSR_RNE       2
 #define SSPSR_BSY       4
 #define SSPSR_TNF		1
@@ -42,31 +47,17 @@
 
 /*--- CS_RAM1 pin ---*/
 #define CS_RAM1_GPIO				LPC_GPIO1									/* CS_RAM1 PORT */
-#define CS_RAM1_BIT					24											/* CS_RAM1 PIN */
+#define CS_RAM1_BIT					20											/* CS_RAM1 PIN */
 #define CS_RAM1_SET_OUTPUT()		CS_RAM1_GPIO->FIODIR |= (1<<CS_RAM1_BIT);	/* CS_RAM1 dir = output */
 #define CS_RAM1_LOW()				CS_RAM1_GPIO->FIOPIN &= ~(1<<CS_RAM1_BIT)	/* Set CS_RAM1 low - enable RAM1 chip */
 #define CS_RAM1_HIGH()				CS_RAM1_GPIO->FIOPIN |= (1<<CS_RAM1_BIT)	/* Set CS_RAM1 high - disable RAM1 chip */
 
 /*--- CS_RAM2 pin ---*/
 #define CS_RAM2_GPIO				LPC_GPIO1									/* CS_RAM2 PORT */
-#define CS_RAM2_BIT					23											/* CS_RAM2 PIN */
+#define CS_RAM2_BIT					21											/* CS_RAM2 PIN */
 #define CS_RAM2_SET_OUTPUT()		CS_RAM2_GPIO->FIODIR |= (1<<CS_RAM2_BIT);	/* CS_RAM2 dir = output */
 #define CS_RAM2_LOW()				CS_RAM2_GPIO->FIOPIN &= ~(1<<CS_RAM2_BIT)	/* Set CS_RAM2 low - enable RAM2 chip */
 #define CS_RAM2_HIGH()				CS_RAM2_GPIO->FIOPIN |= (1<<CS_RAM2_BIT)	/* Set CS_RAM2 high - disable RAM2 chip */
-
-/*--- CS_RAM3 pin ---*/
-#define CS_RAM3_GPIO				LPC_GPIO1									/* CS_RAM3 PORT */
-#define CS_RAM3_BIT					20											/* CS_RAM3 PIN */
-#define CS_RAM3_SET_OUTPUT()		CS_RAM3_GPIO->FIODIR |= (1<<CS_RAM3_BIT);	/* CS_RAM3 dir = output */
-#define CS_RAM3_LOW()				CS_RAM3_GPIO->FIOPIN &= ~(1<<CS_RAM3_BIT)	/* Set CS_RAM3 low - enable RAM3 chip */
-#define CS_RAM3_HIGH()				CS_RAM3_GPIO->FIOPIN |= (1<<CS_RAM3_BIT)	/* Set CS_RAM3 high - disable RAM3 chip */
-
-/*--- CS_RAM4 pin ---*/
-#define CS_RAM4_GPIO				LPC_GPIO1									/* CS_RAM4 PORT */
-#define CS_RAM4_BIT					21											/* CS_RAM4 PIN */
-#define CS_RAM4_SET_OUTPUT()		CS_RAM4_GPIO->FIODIR |= (1<<CS_RAM4_BIT);	/* CS_RAM4 dir = output */
-#define CS_RAM4_LOW()				CS_RAM4_GPIO->FIOPIN &= ~(1<<CS_RAM4_BIT)	/* Set CS_RAM4 low - enable RAM2 chip */
-#define CS_RAM4_HIGH()				CS_RAM4_GPIO->FIOPIN |= (1<<CS_RAM4_BIT)	/* Set CS_RAM4 high - disable RAM2 chip */
 
 /*---Function prototypes----*/
 void 			SPI1_Config(void);
