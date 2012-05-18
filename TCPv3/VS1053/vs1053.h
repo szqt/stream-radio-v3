@@ -10,8 +10,8 @@
 
 /*--- xRST pin ---*/
 
-#define VS_RST_GPIO				LPC_GPIO0							//xRST PORT
-#define VS_RST_BIT				23									//xRST PIN
+#define VS_RST_GPIO				LPC_GPIO2							//xRST PORT
+#define VS_RST_BIT				9									//xRST PIN
 #define VS_RST_SET_OUTPUT()		VS_RST_GPIO	->FIODIR |= (1<<VS_RST_BIT);	//xRST dir = output
 #define VS_RST_LOW()			VS_RST_GPIO	->FIOPIN &= ~(1<<VS_RST_BIT)	//Set xRST low - VS reset enable
 #define VS_RST_HIGH()			VS_RST_GPIO	->FIOPIN |= (1<<VS_RST_BIT)		//Set xRST high - VS reset disable
@@ -19,7 +19,7 @@
 /*--- xCS pin ---*/
 
 #define CS_GPIO				LPC_GPIO0							//xCS PORT
-#define CS_BIT				23									//xCS PIN
+#define CS_BIT				30									//xCS PIN
 #define CS_SET_OUTPUT()		CS_GPIO->FIODIR |= (1<<CS_BIT);		//xCS dir = output
 #define CS_LOW()			CS_GPIO->FIOPIN &= ~(1<<CS_BIT)		//Set xCS low - enable command interface
 #define CS_HIGH()			CS_GPIO->FIOPIN |= (1<<CS_BIT)		//Set xCS high - disable command interface
@@ -27,7 +27,7 @@
 /*--- xDSC pin ---*/
 
 #define DSC_GPIO			LPC_GPIO0								//xDSC PORT
-#define DSC_BIT				25										//xDSC PIN
+#define DSC_BIT				29										//xDSC PIN
 #define DSC_SET_OUTPUT()	DSC_GPIO->FIODIR |= (1<<DSC_BIT)		//xDSC dir = output
 #define DSC_LOW()			DSC_GPIO->FIOPIN &= ~(1<<DSC_BIT)		//Set xDSC low - enable data interface
 #define DSC_HIGH()			DSC_GPIO->FIOPIN |= (1<<DSC_BIT)		//Set xDSC high - disable data interface
@@ -35,7 +35,7 @@
 /*--- DREQ pin ---*/
 
 #define DREQ_GPIO			LPC_GPIO0								//DREQ PORT
-#define DREQ_BIT			24										//DREQ PIN
+#define DREQ_BIT			26										//DREQ PIN
 #define DREQ_SET_INPUT()	DREQ_GPIO->FIODIR &= ~(1<<DREQ_BIT)		//DREQ dir = input
 
 /*---VS opcodes ---*/
@@ -96,10 +96,8 @@ void 							vs_write_reg_NoDREQ(uint16_t reg, uint16_t data);
 uint16_t 						vs_read_reg(uint16_t reg);
 void 							vs_write_patch(const uint8_t *adr, const uint16_t *data, uint16_t patch_len);
 void 							vs_set_volume(uint8_t volume);
+void							vs_reset(void);
 void 							vs_init(void);
-//void 							vs_bufputs(char *s, uint16_t len);
-//unsigned int 					vs_buflen(void);
-//unsigned int 					vs_buffree(void);
 void 							VS_feed(void);
 
 

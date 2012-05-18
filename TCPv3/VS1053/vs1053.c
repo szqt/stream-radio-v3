@@ -1080,6 +1080,9 @@ void SPI_Config(void)
 
 	DREQ_SET_INPUT();
 
+	VS_RST_HIGH();
+	VS_RST_SET_OUTPUT();
+
 
 	/* P0.15 SCK, P0.17 MISO, P0.18 MOSI are SSP pins. */
 	LPC_PINCON->PINSEL0 &= ~( (2UL<<30) ); 			 /* P0.15  cleared */
@@ -1232,6 +1235,15 @@ void vs_set_volume(uint8_t volume){
 	vs_write_reg_NoDREQ(VS_VOL, ((255-volume)<<8) | (255-volume));
 //	CoLeaveMutexSection(SPI0_Mutex);
 }
+/*
+ * VS1053 hardware reset
+ */
+void vs_reset(void){
+	VS_RST_LOW();
+	delay_ms(500);
+	VS_RST_HIGH();
+}
+
 /**
  * Initialize VS1053B audio decoder
  */
@@ -1240,6 +1252,7 @@ void vs_init(void){
 	uint16_t cnt1, cnt2;
 	SPI_Config();
 	delay_ms(10);
+	vs_reset();
 	vs_write_reg(VS_MODE, SM_SDINEW);
 	vs_write_reg(VS_VOL, 0x0404);
 	vs_write_reg(VS_BASS, 0x0F5A);//TREBFREQ = 15000Hz, BASSAMP =5, BASSFREQ 100Hz
@@ -1255,20 +1268,20 @@ void vs_init(void){
 	RAM_buftail=0;
 
 	cnt1 = 0;
-//	while (cnt1 < 16352) {
-//		if ((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0) { /* Jezeli pin DREQ ma stan wysoki wylija dane do VS */
-//
-//			CS_HIGH(); /* Dla pewnosci */
-//			DSC_LOW();
-//
-//			for (cnt2=0; cnt2 < 32; cnt2++) {
-//				spi_write(sample[cnt1+cnt2]);
-//			}
-//
-//			DSC_HIGH();
-//			cnt1+=32;
-//		}
-//	}
+	while (cnt1 < 16352) {
+		if ((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0) { /* Jezeli pin DREQ ma stan wysoki wylija dane do VS */
+
+			CS_HIGH(); /* Dla pewnosci */
+			DSC_LOW();
+
+			for (cnt2=0; cnt2 < 32; cnt2++) {
+				spi_write(sample[cnt1+cnt2]);
+			}
+
+			DSC_HIGH();
+			cnt1+=32;
+		}
+	}
 }
 
 void EINT3_IRQHandler(void){
