@@ -247,164 +247,172 @@ while(1){
  * @param s data to buffer
  * @patam len length of data
  */
-void RAM_bufputs(char *data, uint16_t len) {
+void RAM_bufputs(char *data_in, uint16_t len_in) {
+	char *data;
 	uint32_t head;
-	uint16_t written_data;
-	if(len==0){
-		return;
-	}else if(len>4095){
-		UART_PrintStr("Bbufputs to big transfer size: ");
-		UART_PrintNum(len);
-		UART_PrintStr("\r\n");
-		len=4095;
-	}
-	if (xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE) {
-		head = RAM_bufhead;
+	uint16_t written_data, len;
 
-		if(head<RAM_CHIPSIZE){
-			if(RAM_CHIPSIZE-head >= len){							/* enough space in first ram? */
-				CS_RAM1_LOW();										/* Select first ram chip */
-				SPI1_Write(WREN);									/* Enable writing to memory */
-				CS_RAM1_HIGH();										/* Deselect ram chip */
-				CS_RAM1_LOW();										/* Select first ram chip */
-				SPI1_FIFO_write(WRITE);								/* Send write command */
-				SPI1_FIFO_write(0xFF & (head >> 16));				/* Send first byte of address */
-				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send second byte of address */
-				SPI1_FIFO_write(0xFF & head);						/* Send third byte of address */
-				StartSpi1TxDmaTransfer(data, len);					/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM1_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+len;
-					xSemaphoreGive(xSPI1_Mutex);
-				}else{
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM1_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+len;
-					UART_PrintStr("No semph ch0 1\r\n");
-					DMA_Config();									/* Reconfigure DMA */
-					xSemaphoreGive(xSPI1_Mutex);
-				}
-			}else{													/* We must write some data to first and second ram chip */
-				CS_RAM1_LOW();										/* Select first ram chip */
-				SPI1_Write(WREN);									/* Enable writing to memory */
-				CS_RAM1_HIGH();										/* Deselect ram chip */
-				CS_RAM1_LOW();										/* Select first ram chip */
-				SPI1_FIFO_write(WRITE);								/* Send write command */
-				SPI1_FIFO_write(0xFF & (head >> 16));				/* Send first byte of address */
-				SPI1_FIFO_write(0xFF & (head >> 8));				/* Send second byte of address */
-				SPI1_FIFO_write(0xFF & head);						/* Send third byte of address */
-				StartSpi1TxDmaTransfer(data, RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM1_HIGH();									/* Deselect ram chip */
-				}else{
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM1_HIGH();
-					UART_PrintStr("No semph ch0 2\r\n");
-					DMA_Config();									/* Reconfigure DMA */
-				}
-				written_data = (RAM_CHIPSIZE-head);
-				head = RAM_CHIPSIZE;								/* Set head at start of second RAM */
+	data = data_in;
 
-				CS_RAM2_LOW();										/* Select second ram chip */
-				SPI1_Write(WREN);									/* Enable writing to memory */
-				CS_RAM2_HIGH();										/* Deselect ram chip */
-				CS_RAM2_LOW();										/* Select second ram chip */
-				SPI1_FIFO_write(WRITE);								/* Send write command */
-				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 16));		/* Send first byte of address <----------------- adr = 0*/
-				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send second byte of address */
-				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send third byte of address */
-				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM2_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+(len-written_data);
-					xSemaphoreGive(xSPI1_Mutex);
-				}else{
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM2_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+(len-written_data);
-					UART_PrintStr("No semph ch0 3\r\n");
-					DMA_Config();									/* Reconfigure DMA */
-					xSemaphoreGive(xSPI1_Mutex);
-				}
-			}
-		}else {
-			if(2*RAM_CHIPSIZE-head >= len){							/* enough space in second ram? */
-				CS_RAM2_LOW();										/* Select second ram chip */
-				SPI1_Write(WREN);									/* Enable writing to memory */
-				CS_RAM2_HIGH();										/* Deselect ram chip */
-				CS_RAM2_LOW();										/* Select second ram chip */
-				SPI1_FIFO_write(WRITE);								/* Send write command */
-				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 16));		/* Send first byte of address */
-				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send second byte of address */
-				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send third byte of address */
-				StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM2_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+len;
-					if(RAM_bufhead >= 2*RAM_CHIPSIZE){
-						RAM_bufhead = 0;
-					}
-					xSemaphoreGive(xSPI1_Mutex);
-				}else{
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM2_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+len;
-					UART_PrintStr("No semph ch0 4\r\n");
-					DMA_Config();									/* Reconfigure DMA */
-					xSemaphoreGive(xSPI1_Mutex);
-				}
-			}else{													/* We must write some data to second and first ram chip */
-				CS_RAM2_LOW();										/* Select second ram chip */
-				SPI1_Write(WREN);									/* Enable writing to memory */
-				CS_RAM2_HIGH();										/* Deselect ram chip */
-				CS_RAM2_LOW();										/* Select second ram chip */
-				SPI1_FIFO_write(WRITE);								/* Send write command */
-				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 16));		/* Send first byte of address */
-				SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send second byte of address */
-				SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send third byte of address */
-				StartSpi1TxDmaTransfer(data, 2*RAM_CHIPSIZE-head);			/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM2_HIGH();									/* Deselect ram chip */
-				}else{
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM2_HIGH();									/* Deselect ram chip */
-					UART_PrintStr("No semph ch0 5\r\n");
-					DMA_Config();									/* Reconfigure DMA */
-				}
-				written_data = (2*RAM_CHIPSIZE-head);
-				head = 0;										/* Set head at start of first RAM */
-
-				CS_RAM1_LOW();										/* Select first ram chip */
-				SPI1_Write(WREN);									/* Enable writing to memory */
-				CS_RAM1_HIGH();										/* Deselect ram chip */
-				CS_RAM1_LOW();										/* Select third ram chip */
-				SPI1_FIFO_write(WRITE);								/* Send write command */
-				SPI1_FIFO_write(0x00);								/* Send first byte of address */
-				SPI1_FIFO_write(0x00);								/* Send second byte of address */
-				SPI1_FIFO_write(0x00);								/* Send third byte of address */
-				StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
-				if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM1_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+(len-written_data);
-					xSemaphoreGive(xSPI1_Mutex);
-				}else{
-					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-					CS_RAM1_HIGH();									/* Deselect ram chip */
-					RAM_bufhead = head+(len-written_data);
-					UART_PrintStr("No semph ch0 6\r\n");
-					DMA_Config();									/* Reconfigure DMA */
-					xSemaphoreGive(xSPI1_Mutex);
-				}
-			}
+	while(len_in > 0){
+		if(len_in > 4095){			/* Max DMA transfer size is 4095 byte */
+			len = 4095;				/* If len_in is bigger than 4095 we must do several DMA transfer */
+			len_in = len_in - 4095;
+		}else{
+			len = len_in;
+			len_in = 0;
 		}
-	}else{
-		UART_PrintStr("bufput mutex timeout\r\n");
+
+		if (xSemaphoreTake(xSPI1_Mutex, 2000/portTICK_RATE_MS) == pdTRUE) {
+			head = RAM_bufhead;
+
+			if(head<RAM_CHIPSIZE){
+				if(RAM_CHIPSIZE-head >= len){							/* enough space in first ram? */
+					CS_RAM1_LOW();										/* Select first ram chip */
+					SPI1_Write(WREN);									/* Enable writing to memory */
+					CS_RAM1_HIGH();										/* Deselect ram chip */
+					CS_RAM1_LOW();										/* Select first ram chip */
+					SPI1_FIFO_write(WRITE);								/* Send write command */
+					SPI1_FIFO_write(0xFF & (head >> 16));				/* Send first byte of address */
+					SPI1_FIFO_write(0xFF & (head >> 8));				/* Send second byte of address */
+					SPI1_FIFO_write(0xFF & head);						/* Send third byte of address */
+					StartSpi1TxDmaTransfer(data, len);					/* Start DMA transfer */
+					if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM1_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+len;
+						xSemaphoreGive(xSPI1_Mutex);
+					}else{
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM1_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+len;
+						UART_PrintStr("No semph ch0 1\r\n");
+						DMA_Config();									/* Reconfigure DMA */
+						xSemaphoreGive(xSPI1_Mutex);
+					}
+				}else{													/* We must write some data to first and second ram chip */
+					CS_RAM1_LOW();										/* Select first ram chip */
+					SPI1_Write(WREN);									/* Enable writing to memory */
+					CS_RAM1_HIGH();										/* Deselect ram chip */
+					CS_RAM1_LOW();										/* Select first ram chip */
+					SPI1_FIFO_write(WRITE);								/* Send write command */
+					SPI1_FIFO_write(0xFF & (head >> 16));				/* Send first byte of address */
+					SPI1_FIFO_write(0xFF & (head >> 8));				/* Send second byte of address */
+					SPI1_FIFO_write(0xFF & head);						/* Send third byte of address */
+					StartSpi1TxDmaTransfer(data, RAM_CHIPSIZE-head);			/* Start DMA transfer */
+					if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM1_HIGH();									/* Deselect ram chip */
+					}else{
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM1_HIGH();
+						UART_PrintStr("No semph ch0 2\r\n");
+						DMA_Config();									/* Reconfigure DMA */
+					}
+					written_data = (RAM_CHIPSIZE-head);
+					head = RAM_CHIPSIZE;								/* Set head at start of second RAM */
+
+					CS_RAM2_LOW();										/* Select second ram chip */
+					SPI1_Write(WREN);									/* Enable writing to memory */
+					CS_RAM2_HIGH();										/* Deselect ram chip */
+					CS_RAM2_LOW();										/* Select second ram chip */
+					SPI1_FIFO_write(WRITE);								/* Send write command */
+					SPI1_FIFO_write(0x00);								/* Send first byte of address <----------------- adr = 0*/
+					SPI1_FIFO_write(0x00);								/* Send second byte of address */
+					SPI1_FIFO_write(0x00);								/* Send third byte of address */
+					StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
+					if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM2_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+(len-written_data);
+						xSemaphoreGive(xSPI1_Mutex);
+					}else{
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM2_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+(len-written_data);
+						UART_PrintStr("No semph ch0 3\r\n");
+						DMA_Config();									/* Reconfigure DMA */
+						xSemaphoreGive(xSPI1_Mutex);
+					}
+				}
+			}else {
+				if(2*RAM_CHIPSIZE-head >= len){							/* enough space in second ram? */
+					CS_RAM2_LOW();										/* Select second ram chip */
+					SPI1_Write(WREN);									/* Enable writing to memory */
+					CS_RAM2_HIGH();										/* Deselect ram chip */
+					CS_RAM2_LOW();										/* Select second ram chip */
+					SPI1_FIFO_write(WRITE);								/* Send write command */
+					SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 16));		/* Send first byte of address */
+					SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send second byte of address */
+					SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send third byte of address */
+					StartSpi1TxDmaTransfer(data, len);						/* Start DMA transfer */
+					if(xSemaphoreTake(xDMAch0_Semaphore, 500/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM2_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+len;
+						if(RAM_bufhead >= 2*RAM_CHIPSIZE){
+							RAM_bufhead = 0;
+						}
+						xSemaphoreGive(xSPI1_Mutex);
+					}else{
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM2_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+len;
+						UART_PrintStr("No semph ch0 4\r\n");
+						DMA_Config();									/* Reconfigure DMA */
+						xSemaphoreGive(xSPI1_Mutex);
+					}
+				}else{													/* We must write some data to second and first ram chip */
+					CS_RAM2_LOW();										/* Select second ram chip */
+					SPI1_Write(WREN);									/* Enable writing to memory */
+					CS_RAM2_HIGH();										/* Deselect ram chip */
+					CS_RAM2_LOW();										/* Select second ram chip */
+					SPI1_FIFO_write(WRITE);								/* Send write command */
+					SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 16));		/* Send first byte of address */
+					SPI1_FIFO_write(0xFF & ((head - RAM_CHIPSIZE) >> 8));		/* Send second byte of address */
+					SPI1_FIFO_write(0xFF & (head - RAM_CHIPSIZE));				/* Send third byte of address */
+					StartSpi1TxDmaTransfer(data, 2*RAM_CHIPSIZE-head);			/* Start DMA transfer */
+					if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){	/* Wait for transfer complete */
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM2_HIGH();									/* Deselect ram chip */
+					}else{
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM2_HIGH();									/* Deselect ram chip */
+						UART_PrintStr("No semph ch0 5\r\n");
+						DMA_Config();									/* Reconfigure DMA */
+					}
+					written_data = (2*RAM_CHIPSIZE-head);
+					head = 0;										/* Set head at start of first RAM */
+
+					CS_RAM1_LOW();										/* Select first ram chip */
+					SPI1_Write(WREN);									/* Enable writing to memory */
+					CS_RAM1_HIGH();										/* Deselect ram chip */
+					CS_RAM1_LOW();										/* Select third ram chip */
+					SPI1_FIFO_write(WRITE);								/* Send write command */
+					SPI1_FIFO_write(0x00);								/* Send first byte of address */
+					SPI1_FIFO_write(0x00);								/* Send second byte of address */
+					SPI1_FIFO_write(0x00);								/* Send third byte of address */
+					StartSpi1TxDmaTransfer(data+written_data, len-written_data);	/* Start DMA transfer */
+					if(xSemaphoreTake(xDMAch0_Semaphore, 1000/portTICK_RATE_MS) == pdTRUE){
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM1_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+(len-written_data);
+						xSemaphoreGive(xSPI1_Mutex);
+					}else{
+						while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
+						CS_RAM1_HIGH();									/* Deselect ram chip */
+						RAM_bufhead = head+(len-written_data);
+						UART_PrintStr("No semph ch0 6\r\n");
+						DMA_Config();									/* Reconfigure DMA */
+						xSemaphoreGive(xSPI1_Mutex);
+					}
+				}
+			}
+		}else{
+			UART_PrintStr("bufput mutex timeout\r\n");
+		}
+
+		data = data_in + 4095;
 	}
 }
 
@@ -463,7 +471,7 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 				SPI1_Write(0x00);									/* Send third byte of address */
 				while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )			/* Make sure that SSP1 Rx FIFO is empty */
 					dummy = LPC_SSP1->DR;
-				StartSpi1RxDmaTransfer(buf+read_data, len-read_data+1);			/* Initialize DMA transfer SSP1 Rx FIFO -> buf <--------------------------- jest bug*/
+				StartSpi1RxDmaTransfer(buf, len-read_data+1);			/* Initialize DMA transfer SSP1 Rx FIFO -> buf <--------------------------- jest bug*/
 				StartSpi1TxDmaDummyTransfer(&dummy, len-read_data+1);	/* Initialize DMA transfer dummy byte -> SSP Tx FIFO */
 				if(xSemaphoreTake(xDMAch2_Semaphore, portMAX_DELAY) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
@@ -515,7 +523,7 @@ void RAM_bufget(uint8_t *buf, uint16_t len){
 				SPI1_Write(0x00);									/* Send third byte of address */
 				while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )			/* Make sure that SSP1 Rx FIFO is empty */
 					dummy = LPC_SSP1->DR;
-				StartSpi1RxDmaTransfer(buf+read_data, len-read_data+1);		/* Initialize DMA transfer SSP1 Rx FIFO -> buf <------------------------------- jest bug*/
+				StartSpi1RxDmaTransfer(buf, len-read_data+1);		/* Initialize DMA transfer SSP1 Rx FIFO -> buf <------------------------------- jest bug*/
 				StartSpi1TxDmaDummyTransfer(&dummy, len-read_data+1);		/* Initialize DMA transfer dummy byte -> SSP Tx FIFO */
 				if(xSemaphoreTake(xDMAch2_Semaphore, portMAX_DELAY) == pdTRUE){
 					while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */

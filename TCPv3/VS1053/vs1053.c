@@ -1249,7 +1249,7 @@ void vs_reset(void){
  */
 void vs_init(void){
 	uint16_t status;
-	uint16_t cnt1, cnt2;
+//	uint16_t cnt1, cnt2;
 	SPI_Config();
 	delay_ms(10);
 	vs_reset();
@@ -1267,21 +1267,21 @@ void vs_init(void){
 	RAM_bufhead=0;
 	RAM_buftail=0;
 
-	cnt1 = 0;
-	while (cnt1 < 16352) {
-		if ((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0) { /* Jezeli pin DREQ ma stan wysoki wylija dane do VS */
-
-			CS_HIGH(); /* Dla pewnosci */
-			DSC_LOW();
-
-			for (cnt2=0; cnt2 < 32; cnt2++) {
-				spi_write(sample[cnt1+cnt2]);
-			}
-
-			DSC_HIGH();
-			cnt1+=32;
-		}
-	}
+//	cnt1 = 0;
+//	while (cnt1 < 16352) {
+//		if ((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0) { /* Jezeli pin DREQ ma stan wysoki wylija dane do VS */
+//
+//			CS_HIGH(); /* Dla pewnosci */
+//			DSC_LOW();
+//
+//			for (cnt2=0; cnt2 < 32; cnt2++) {
+//				spi_write(sample[cnt1+cnt2]);
+//			}
+//
+//			DSC_HIGH();
+//			cnt1+=32;
+//		}
+//	}
 }
 
 void EINT3_IRQHandler(void){
