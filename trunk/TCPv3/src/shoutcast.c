@@ -113,7 +113,7 @@ void shoutcast(void *pdata) {
 //	portserv = 80;
 
 	/* RMF AAC+ 48bps port 9000 */
-	const char string8[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+	const char string8[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WEBRADIO\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
 //	portserv = 9000;
 
