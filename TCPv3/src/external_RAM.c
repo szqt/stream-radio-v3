@@ -23,110 +23,123 @@ volatile uint32_t RAM_bufhead = 0, /* Next to write */
 RAM_buftail = 0; /* Next to read */
 
 /**
- * Initialize external RAM
+ * Configure SPI1
+ * MSTR
+ * CPHA = 0, CPOL = 0
+ * CLK = 16,6MHz
  */
-
 void SPI1_Config(void){
 	volatile uint32_t dummy;
 
-	dummy = dummy;                                   /* avoid warning */
+	dummy = dummy;						/* avoid warning */
 
-    LPC_SC->PCONP |= (1 << 10);                      /* Enable power to SSPI0 block */
-
-
-    CS_RAM1_HIGH();
-    CS_RAM1_SET_OUTPUT();
-
-    CS_RAM2_HIGH();
-    CS_RAM2_SET_OUTPUT();
+    LPC_SC->PCONP |= (1 << 10);			/* Enable power to SSPI0 block */
 
 	/* P0.6 SSEL, P0.7 SCK, P0.8 MISO, P0.9 MOSI are SSP pins. */
 	LPC_PINCON->PINSEL0 &= ~( (2UL<<14) | (2UL<<16) | (2UL<<18) );		/* P0.15  cleared */
-
 	LPC_PINCON->PINSEL0 |=  ( (2UL<<14) | (2UL<<16) | (2UL<<18));		/* P0.15 SCK0 */
 
 	/* PCLK_SSP0=CCLK */
-	LPC_SC->PCLKSEL0 &= ~(3<<20);                    /* PCLKSP0 = CCLK/4 (25MHz) */
-	LPC_SC->PCLKSEL0 |=  (1<<20);                    /* PCLKSP0 = CCLK   (100MHz) */
+	LPC_SC->PCLKSEL0 &= ~(3<<20);
+	LPC_SC->PCLKSEL0 |=  (1<<20);					/* PCLKSP0 = CCLK   (100MHz) */
 
-	LPC_SSP1->CR0  = ( 7<<0 );                       /* 8Bit, CPOL=0, CPHA=0         */
-	LPC_SSP1->CR1  = ( 1<<1 );                       /* SSP0 enable, master          */
+	LPC_SSP1->CR0  = (7<<0);						/* 8Bit, CPOL=0, CPHA=0         */
+	LPC_SSP1->CR1  = (1<<1);						/* SSP0 enable, master          */
 
-	SPI1_SetSpeed (6);						/* PCLK/50 */
+	/* Set SPI Clock speed */
+	SPI1_SetSpeed (SPI_16MHz);						/* PCLK/6 */
 
-	/* wait for busy gone */
-	while( LPC_SSP1->SR & ( 1 << SSPSR_BSY ) );
+	while( LPC_SSP1->SR & (1 << SSPSR_BSY));		/* wait for busy gone */
 
 	/* drain SPI RX FIFO */
-	while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )
-	{
+	while( LPC_SSP1->SR & (1 << SSPSR_RNE))
 		dummy = LPC_SSP1->DR;
-	}
-}
 
+}
+/*
+ * Send one byte via SPI1
+ * It first wait for previous transfer complete
+ *
+ * @param byte_s byte to send
+ * @return received byte
+ */
 uint8_t SPI1_Write(uint8_t byte_s)
 {
 	uint8_t byte_r;
 
-	while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+	while ( LPC_SSP1->SR & (1 << SSPSR_BSY));			/* Wait for transfer to finish */
 	LPC_SSP1->DR = byte_s;
 
-	while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
+	while ( LPC_SSP1->SR & (1 << SSPSR_BSY));			/* Wait for transfer to finish */
 
-	while( !( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) ) );	/* Wait untill the Rx FIFO is not empty */
+	while( !( LPC_SSP1->SR & (1 << SSPSR_RNE )));		/* Wait untill the Rx FIFO is not empty */
 	byte_r = LPC_SSP1->DR;
 
 	return byte_r;                                      /* Return received value */
 }
 
+/*
+ * Write one byte to SPI1 Transmit FIFO
+ * It wait if FIFO is full
+ *
+ * @param byte_s byte to send
+ */
 void SPI1_FIFO_write(uint8_t byte_s)
 {
 	while ( !(LPC_SSP1->SR & (1 << SSPSR_TNF)) ); 	    /* Wait if FIFO full */
 	LPC_SSP1->DR = byte_s;
 }
 
+/*
+ * Set SPI1 clk speed
+ *
+ * @param clk prescaler
+ */
 void SPI1_SetSpeed(uint8_t speed)
 {
 	speed &= 0xFE;
-	if ( speed < 2  ) {
+	if (speed < 2 ) {
 		speed = 2 ;
 	}
 	LPC_SSP0->CPSR = speed;
 }
 
-void RAM_init(void) {
+/*
+ * Initialize external RAM memory
+ *
+ */
+void RAM_Init(void) {
 	uint8_t sts;
 
-	SPI1_Config();
+	CS_RAM1_HIGH();			/* Set high CS1 pin */
+    CS_RAM1_SET_OUTPUT();	/* Set output CS1 pin */
 
-	delay_ms(2);
+    CS_RAM2_HIGH();			/* Set high CS2 pin */
+    CS_RAM2_SET_OUTPUT();	/* Set output CS2 pin */
+
+    SPI1_Config();
+
+	delay_ms(1);
 
 	/*--- Config external RAM no. 1 ---*/
-
-
-
 	CS_RAM1_LOW();
 	SPI1_Write(RDSR); 				/* Read STATUS register  */
 	sts = SPI1_Write(DUMMY_BYTE);
 	CS_RAM1_HIGH();
 
-	delay_ms(2);
 	/*--- Config external RAM no. 2 ---*/
-
-
-
 	CS_RAM2_LOW();
 	SPI1_Write(RDSR); 				/* Read STATUS register  */
 	sts = SPI1_Write(DUMMY_BYTE);
 	CS_RAM2_HIGH();
-
-	delay_ms(2);
 }
-
+/*
+ * Use for test RAM memory
+ */
 void RAM_test(void) {
 
 	uint16_t cnt;
-	uint8_t buf[32], a=4, buf2[32];
+	uint8_t buf[32], buf2[32];
 
 	CS_RAM1_LOW();
 	SPI1_Write(WREN);
@@ -177,69 +190,7 @@ void RAM_test(void) {
 		buf2[cnt] = SPI1_Write(DUMMY_BYTE);
 	}
 	CS_RAM2_HIGH();
-
-	/* zerowanie bufora */
-	for (cnt = 0; cnt < 32; cnt++) {
-		buf[cnt] = 0;
-	}
-//	delay_ms(2);
-	/* transfer DMA - odczyt z SPI */
-while(1){
-	CS_RAM1_LOW();
-	SPI1_Write(READ);
-	SPI1_Write(0x00);
-	SPI1_Write(0x00);
-	SPI1_Write(0x00);
-
-	while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) ){
-		a = LPC_SSP1->DR;
-	}
-	StartSpi1RxDmaTransfer(&buf[0], 21);
-	StartSpi1TxDmaDummyTransfer(&a, 21);
-//	for (cnt = 0; cnt < 20; cnt++) {
-//		SPI1_FIFO_write(DUMMY_BYTE);
-//		delay_ms(100);
-	//	LED_Toggle(0);
-	//}
-	while ( LPC_SSP1->SR & (1 << SSPSR_BSY) );		/* Wait for transfer to finish */
-	CS_RAM1_HIGH();
-	delay_ms(1000);
-	cnt=0;
-
-	while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) ){
-		buf2[cnt] = LPC_SSP1->DR;
-		cnt++;
-	}
 }
-	while(1);
-
-//	CS_RAM2_LOW();
-//	DMA_Config();
-////	while(!(LPC_GPDMA->DMACIntStat & 0x01)); //czekaj na koniec transferu DMA
-//	while ( LPC_SSP1->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
-//	CS_RAM2_HIGH();
-//	LPC_GPDMACH0->DMACCConfig &= ~(1<0);	/* Disable DMA channel 0 */
-//	LPC_GPDMA->DMACIntErrClr |= 0xFF;
-//	LPC_GPDMA->DMACIntTCClear |= 0xFF;
-//	NVIC_SetPriority(DMA_IRQn, 5);
-//	NVIC_EnableIRQ(DMA_IRQn);
-//	//wyczyć bufor RX
-//
-//	while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )
-//	{
-//		buf[0] = LPC_SSP1->DR;
-//	}
-//
-//	CS_RAM2_LOW();
-//	SPI1_Write(READ);
-//	SPI1_Write(0x00);
-//	SPI1_Write(0x00);
-//	for (cnt = 0; cnt < 13; cnt++) {
-//		buf[cnt] = SPI1_Write(DUMMY_BYTE);
-//	}
-//	CS_RAM2_HIGH();
-}
-
 
 /**
  * Puts samples to RAM buffer
@@ -255,6 +206,7 @@ void RAM_bufputs(char *data_in, uint16_t len_in) {
 	data = data_in;
 
 	while(len_in > 0){
+
 		if(len_in > 4095){			/* Max DMA transfer size is 4095 byte */
 			len = 4095;				/* If len_in is bigger than 4095 we must do several DMA transfer */
 			len_in = len_in - 4095;

@@ -1059,30 +1059,18 @@ const uint8_t sample[] = { 0xfd, 0xee, 0xf6,
 		0x68, 0x6d, 0x00, 0x4f, 0x9f, 0xd5, 0x74, 0x5e, 0x57, 0x08, 0x53, 0x3a};
 
 /**
- * Initialize SPI interface
+ * Initialize SPI0 interface
+ * MSTR
+ * CPHA = 0, CPOL = 0
+ * CLK speed = 2MHz
  */
-void SPI_Config(void)
+void SPI0_Config(void)
 {
 	volatile uint32_t dummy;
 
 	dummy = dummy;                                   /* avoid warning */
 
     LPC_SC->PCONP |= (1 << 21);                      /* Enable power to SSPI0 block */
-
-    LPC_GPIO0->FIODIR |=  (1<<16);                   /* P0.16 CS is output */
-    LPC_GPIO0->FIOPIN |= (1<<16);		/* zablokuj zwenętrzny flash */
-
-	CS_SET_OUTPUT();
-	CS_HIGH();
-
-	DSC_SET_OUTPUT();
-	DSC_HIGH();
-
-	DREQ_SET_INPUT();
-
-	VS_RST_HIGH();
-	VS_RST_SET_OUTPUT();
-
 
 	/* P0.15 SCK, P0.17 MISO, P0.18 MOSI are SSP pins. */
 	LPC_PINCON->PINSEL0 &= ~( (2UL<<30) ); 			 /* P0.15  cleared */
@@ -1098,7 +1086,7 @@ void SPI_Config(void)
 	LPC_SSP0->CR0  = ( 7<<0 );                       /* 8Bit, CPOL=0, CPHA=0         */
 	LPC_SSP0->CR1  = ( 1<<1 );                       /* SSP0 enable, master          */
 
-	SPI_SetSpeed (SPI_2MHz);						/* PCLK/50 */
+	SPI0_SetSpeed(SPI_2MHz);						/* PCLK/50 */
 
 	/* wait for busy gone */
 	while( LPC_SSP0->SR & ( 1 << SSPSR_BSY ) );
@@ -1143,7 +1131,7 @@ void SPI0_FIFO_write(uint8_t byte_s){
 	LPC_SSP0->DR = byte_s;
 }
 
-void SPI_SetSpeed(uint8_t speed)
+void SPI0_SetSpeed(uint8_t speed)
 {
 	speed &= 0xFE;
 	if ( speed < 2  ) {
@@ -1247,24 +1235,45 @@ void vs_reset(void){
 /**
  * Initialize VS1053B audio decoder
  */
-void vs_init(void){
+void VS_Init(void){
 	uint16_t status;
 //	uint16_t cnt1, cnt2;
-	SPI_Config();
-	delay_ms(10);
-	vs_reset();
-	vs_write_reg(VS_MODE, SM_SDINEW);
-	vs_write_reg(VS_VOL, 0x0404);
-	vs_write_reg(VS_BASS, 0x0F5A);//TREBFREQ = 15000Hz, BASSAMP =5, BASSFREQ 100Hz
+
+	/* Deactivate onboard flash memory chip */
+	LPC_GPIO0->FIODIR |=  (1<<16);                   /* P0.16 CS is output */
+    LPC_GPIO0->FIOPIN |= (1<<16);		/* zablokuj zwenętrzny flash */
+
+    /* Configure CS pin */
+	CS_SET_OUTPUT();
+	CS_HIGH();
+
+	/* Configure DSC pin */
+	DSC_SET_OUTPUT();
+	DSC_HIGH();
+
+
+	DREQ_SET_INPUT();
+
+	VS_RST_HIGH();
+	VS_RST_SET_OUTPUT();
+
+
+	SPI0_Config();				/* Configure SPI0 interface */
+	SPI0_SetSpeed(SPI_2MHz);		/* Set slow clk */
+	delay_ms(1);
+
+	vs_reset();							/* VS1053 hardware reset */
+	vs_write_reg(VS_MODE, SM_SDINEW);	/* Set VS mode */
+	vs_write_reg(VS_VOL, 0x0404);		/* Set VS module */
+	vs_write_reg(VS_BASS, 0x0F5A);		/* TREBFREQ = 15000Hz, BASSAMP =5, BASSFREQ 100Hz */
 	status = vs_read_reg(VS_STATUS);
 	vs_write_reg(VS_CLOCKF, VS_SC_ADD_2X | VS_SC_MUL_4X);		/* CLKI = 4x12.288MHz = 49.152MHz, 5x12.288MHz = 61.44MHz */
-	delay_ms(2);										/* Czas na zmianę mnożnika zegara */
-	vs_write_patch(apatch, dpatch, VS_PATCHLEN);
+	delay_ms(2);									/* Time to clock change */
+	vs_write_patch(apatch, dpatch, VS_PATCHLEN);	/* Write path to VS */
 
-//	LPC_SPI->SPCCR = 10;			/* SPI_CLK=PCKL_SPI/10 = 10MHz */
-	SPI_SetSpeed(SPI_11MHz);
-	delay_ms(2);
-	RAM_bufhead=0;
+	SPI0_SetSpeed(SPI_11MHz);	/* Now we can speed up SPI0 */
+	delay_ms(1);
+	RAM_bufhead=0;				/* Reset circular buffer */
 	RAM_buftail=0;
 
 //	cnt1 = 0;
@@ -1285,47 +1294,37 @@ void vs_init(void){
 }
 
 void EINT3_IRQHandler(void){
-	uint32_t a, b, c, d, e, f;
+
 	LPC_GPIOINT->IO2IntClr |= (1<<10);	//kasuje flagę prerwania
-	a = LPC_GPDMA->DMACSoftSReq;
-	b = LPC_GPDMACH0->DMACCControl;
-	c = LPC_GPDMA->DMACIntStat;
-	d = LPC_GPDMA->DMACConfig;
-	e =  LPC_GPDMACH0->DMACCConfig;
-	f = LPC_GPDMA->DMACEnbldChns;
+
 }
 
 /**
- * Try send up to 32 bytes (32 samples) to VS1053B
+ * Try send 32 bytes (32 samples) to VS1053B
  */
 void VS_feed(void){
 
 	uint32_t len;
-	uint8_t buffer[33];//, cntr;
+	uint8_t buffer[33];
 
 	while((DREQ_GPIO->FIOPIN & (1 << DREQ_BIT)) != 0){		/* Jezeli pin DREQ ma stan wysoki wyslij dane do VS */
 		len = RAM_buflen();								/* Sprawdż ile jest danych w buforze */
 		if(len>32){
 			len=32;
 		}
-		if(len==0)
-			break;
+//		if(len==0)
+//			break;
 
-		RAM_bufget(buffer, len);			/* Odczytaj z SRAM maksymalnie 32 bajty */
-
-//		CoEnterMutexSection(SPI0_Mutex);
-		CS_HIGH();									/* Dla pewnosci */
+		RAM_bufget(buffer, 32);		/* Odczytaj z SRAM maksymalnie 32 bajty */
+									/* Poprawnie odczytane dane będą się znajdować w buforze buffre[1-32] */
+		CS_HIGH();					/* Dla pewnosci */
 		DSC_LOW();
 
-//		for (cntr=0; cntr<len; cntr++)
-//			spi_write(buffer[cntr]);
 		StartSpi0TxDmaTransfer(&buffer[1]);
 		if(xSemaphoreTake(xDMAch1_Semaphore, portMAX_DELAY) == pdTRUE){
 			while ( LPC_SSP0->SR & (1 << SSPSR_BSY) ); 	        /* Wait for transfer to finish */
 			DSC_HIGH();
 		}
-//		CoLeaveMutexSection(SPI0_Mutex);
-
 	}
 }
 

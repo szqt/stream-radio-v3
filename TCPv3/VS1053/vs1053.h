@@ -87,17 +87,17 @@
 
 /*---Function prototypes----*/
 
-void 							SPI_Config(void);
+void 							SPI0_Config(void);
 uint8_t 						spi_write(uint8_t data_out);
 void 							SPI0_FIFO_write(uint8_t byte_s);
-void 							SPI_SetSpeed(uint8_t speed);
+void 							SPI0_SetSpeed(uint8_t speed);
 void 							vs_write_reg(uint16_t reg, uint16_t data);
 void 							vs_write_reg_NoDREQ(uint16_t reg, uint16_t data);
 uint16_t 						vs_read_reg(uint16_t reg);
 void 							vs_write_patch(const uint8_t *adr, const uint16_t *data, uint16_t patch_len);
 void 							vs_set_volume(uint8_t volume);
 void							vs_reset(void);
-void 							vs_init(void);
+void 							VS_Init(void);
 void 							VS_feed(void);
 
 

@@ -38,25 +38,25 @@
 #include "adc.h"
 #include "external_RAM.h"
 #include "DMA.h"
+#include "GLCD.h"
+
+#include "Tasks.h"
 
 
 extern u8_t IPradio_init(void);
 extern u8_t HTTP_init(void);
 void eth_lwip_init(void);
 
-void vIamLiveTask (void * pvParameters);
-void vVsTask(void * pvParameters);
-void vDHCP_TimerCallback(xTimerHandle pxTimer);
-
+/* Uchwyty do zadan */
 xTaskHandle xVsTskHandle;
 xTaskHandle xIamLiveHandle;
 extern xTaskHandle xShoutcastTaskHandle;
 extern xTaskHandle xETHTsk;
 extern sys_thread_t xLWIPTskHandler;
 
+/* Semafory do synchronizacji dostępu do interfejsów SPI 0 i 1 */
 xSemaphoreHandle xSPI0_Mutex = NULL;
 xSemaphoreHandle xSPI1_Mutex = NULL;
-xSemaphoreHandle xDMAch1_Semaphore = NULL;
 
 
 struct netif *lpc17xx_netif;
@@ -75,12 +75,14 @@ struct netif *loop_netif;
 int main()
 {
 	DelayTimer_Config();
+	GLCD_Init();
+	GLCD_Clear(Purple);
 	LED_Config();
 	BUTTON_Config();
 	UART2_Config(115200);
 	ADC_Config();
-	vs_init();
-	RAM_init();
+	VS_Init();
+	RAM_Init();
 	DMA_Config();
 //	RAM_test();
 
@@ -178,88 +180,8 @@ void vDHCP_TimerCallback(xTimerHandle pxTimer){
 }
 #endif
 
-void vIamLiveTask (void * pvParameters){
-	static uint8_t last_vol = 0;
-	uint8_t new_vol;
-//	uint8_t licznik=0;
-//	char buf[120], buf2[300];
-//	unsigned portBASE_TYPE Shoutcast, Vs, IamLive, TCP, ETHinp;
-	while(1){
 
-//		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
-//		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
-//			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
-//				vs_set_volume(new_vol);
-//				LED_Toggle(3);
-//				xSemaphoreGive(xSPI0_Mutex);
-//			}
-//			last_vol = new_vol;
-//
-//		}
-//		licznik++;
-//		if(licznik >=40){
-//			UART_PrintNum(RAM_buflen());
-//			UART_PrintStr("\r\n");
-//			licznik = 0;
-//		}
 
-//		vTaskGetRunTimeStats((signed char*)buf);
-//		UART_PrintBuf (buf, strlen(buf));
-//		vTaskList((signed char*)buf2);
-//		UART_PrintBuf (buf2, strlen(buf2));
-
-//
-//		IamLive = uxTaskGetStackHighWaterMark(NULL);
-//		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
-//		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
-//		TCP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
-//		ETHinp = uxTaskGetStackHighWaterMark(xETHTsk);
-//		UART_PrintStr("ILive: ");
-//		UART_PrintNum(IamLive);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("shout: ");
-//		UART_PrintNum(Shoutcast);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("VS: ");
-//		UART_PrintNum(Vs);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("LWIP: ");
-//		UART_PrintNum(TCP);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("LWIP: ");
-//		UART_PrintNum(TCP);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("ETH: ");
-//		UART_PrintNum(ETHinp);
-//		UART_PrintStr("\r\n");
-
-		LED_Toggle(2);
-		vTaskDelay(50/portTICK_RATE_MS);
-	}
-}
-
-void vVsTask(void * pvParameters) {
-
-	vSemaphoreCreateBinary(xDMAch1_Semaphore);
-	if(xDMAch1_Semaphore != NULL){
-		xSemaphoreTake(xDMAch1_Semaphore, 0);
-	}else{
-		// The semaphore was not created
-	}
-
-	while (1) {
-		if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
-			VS_feed();
-			xSemaphoreGive(xSPI0_Mutex);
-		}
-		vTaskDelay(15/portTICK_RATE_MS);
-	}
-}
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName ){
 	while(1);
 }

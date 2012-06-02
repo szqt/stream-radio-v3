@@ -73,10 +73,20 @@ __INLINE void UART2_Config(int Baudrate)
 
 void  UART_PrintChar (uint8_t ch)
 {
-
-
-   while (!(LPC_UART2->LSR & 0x20));
+   while (!(LPC_UART2->LSR & 0x20));	/* Block until tx empty */
    LPC_UART2->THR  = ch;
+}
+
+void  UART_Sendchar(char c){
+   while (!(LPC_UART2->LSR & 0x20));	/* Block until tx empty */
+   LPC_UART2->THR  = c;
+}
+
+char UART_Getchar(void){
+	char c;
+	while(!(LPC_UART2->LSR & 0x01));	/* Block until rx not empty */
+	c = LPC_UART2->RBR;					/* Read receiver buffer register */
+	return c;
 }
 
 void UART_PrintNum (int numb){

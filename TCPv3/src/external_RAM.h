@@ -42,6 +42,7 @@
 #define SPI_2MHz		50
 #define SPI_10MHz		10
 #define SPI_11MHz		9
+#define SPI_16MHz		6
 #define SPI_20MHz		5
 
 
@@ -64,7 +65,7 @@ void 			SPI1_Config(void);
 uint8_t 		SPI1_Write(uint8_t byte_s);
 void 			SPI1_FIFO_write(uint8_t byte_s);
 void 			SPI1_SetSpeed(uint8_t speed);
-void 			RAM_init(void);
+void 			RAM_Init(void);
 void 			RAM_test(void);
 void 			RAM_bufputs(char *data_in, uint16_t len_in);
 void 			RAM_bufget(uint8_t *buf, uint16_t len);
