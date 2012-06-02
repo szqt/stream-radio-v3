@@ -51,7 +51,8 @@ src/main.d src/main.o: ../src/main.c \
  D:\MyDesigns\LPCXpresso\TCPv3\VS1053/vs1053.h \
  D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/timer.h \
  D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/adc.h \
- ../src/external_RAM.h ../src/DMA.h
+ ../src/external_RAM.h ../src/DMA.h \
+ D:\MyDesigns\LPCXpresso\TCPv3\LCD/GLCD.h ../src/Tasks.h
 
 D:\MyDesigns\LPCXpresso\CMSISv2p00_LPC17xx\inc/system_lpc17xx.h:
 
@@ -162,3 +163,7 @@ D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/adc.h:
 ../src/external_RAM.h:
 
 ../src/DMA.h:
+
+D:\MyDesigns\LPCXpresso\TCPv3\LCD/GLCD.h:
+
+../src/Tasks.h:

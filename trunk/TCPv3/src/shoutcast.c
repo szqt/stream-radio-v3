@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <cr_section_macros.h>
 
 #include "lwip/opt.h"
@@ -19,6 +20,8 @@
 #include "uart.h"
 #include "external_RAM.h"
 #include "vs1053.h"
+
+#include "GLCD.h"
 
 #if LWIP_NETCONN
 
@@ -112,6 +115,9 @@ void shoutcast(void *pdata) {
 //	IP4_ADDR(&ipaddrserv, 80, 190, 234, 235);
 //	portserv = 80;
 
+	const char string8p1[] = "GET / HTTP/1.0\r\n";
+	const char string8p2[] = "Host: 217.74.72.10\r\n";
+	const char string8p3[] = "User-Agent: WEBRADIO\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 	/* RMF AAC+ 48bps port 9000 */
 	const char string8[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WEBRADIO\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 //	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
@@ -130,14 +136,14 @@ void shoutcast(void *pdata) {
 	while(LPC_UART2->LSR & 0x01){		//wyczysc Rx FIFO
 		dummy=LPC_UART2->RBR;
 	}
-
+	printf("Wybierz stację radiową\r\n");
 	UART_PrintStr("a - ZET AAC+ 32bps\r\n");
 	UART_PrintStr("b - EuropaFM AAC+ Romiania 32kbps\r\n");
 	UART_PrintStr("c - idobi Radio MP3 128kbps\r\n");
 	UART_PrintStr("d - RMF MAXXX AAC+ 48kbps\r\n");
 	UART_PrintStr("e - Alex Jones - Infowars.com MP3 32kbps\r\n");
 	UART_PrintStr("f - TechnoBase.FM MP3 128kbps\r\n");
-	UART_PrintStr("g - French Kiss FM MP3 128kbps\r\n");
+	UART_PrintStr("g - RMF AAC+ 48bps - test\r\n");
 	UART_PrintStr("h - RMF AAC+ 48bps\r\n");
 	UART_PrintStr("i - SKY.FM FM MP3 96kbps\r\n");
 	UART_PrintStr("j - 181.FM MP3 128kbps\r\n");
@@ -179,8 +185,8 @@ void shoutcast(void *pdata) {
 		portserv = 80;
 		break;
 	case 'g':
-		IP4_ADDR(&ipaddrserv, 80, 190, 234, 235);
-		portserv = 80;
+		IP4_ADDR(&ipaddrserv, 192, 168, 195, 87);	// rmf test
+		portserv = 9000;
 		break;
 	case 'h':
 		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
@@ -193,6 +199,9 @@ void shoutcast(void *pdata) {
 	case 'j':
 		IP4_ADDR(&ipaddrserv, 207, 200, 96, 134);
 		portserv = 80;
+		break;
+	case 'k':
+
 		break;
 	default:
 		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
@@ -269,8 +278,10 @@ reconect:
 			case 'f':
 				rc1 = netconn_write(NetConn, string6, sizeof(string6), NETCONN_NOCOPY);
 				break;
-			case 'g':
-				rc1 = netconn_write(NetConn, string7, sizeof(string7), NETCONN_NOCOPY);
+			case 'g':		// rmf test
+				rc1 = netconn_write(NetConn, string8p1, sizeof(string8p1)-1, NETCONN_COPY);
+				rc1 = netconn_write(NetConn, string8p2, sizeof(string8p2)-1, NETCONN_COPY);
+				rc1 = netconn_write(NetConn, string8p3, sizeof(string8p3)-1, NETCONN_COPY);
 				break;
 			case 'h':
 				rc1 = netconn_write(NetConn, string8, sizeof(string8), NETCONN_NOCOPY);
@@ -290,12 +301,21 @@ reconect:
 				UART_PrintStr("Ncon_write error: ");
 				PrintERR(rc1);
 			}
-
+			vTaskDelay(4000/portTICK_RATE_MS);
 			while((netconn_recv(NetConn, &inbuf)) == ERR_OK){
 				BufLen = netbuf_len(inbuf);
 				CpBytes = netbuf_copy(inbuf, mybuf, BufLen);
 				netbuf_delete(inbuf);
 
+				/* Znajdź kod statusu żądania HTTP */
+				ptr = strstr(mybuf, "ICY");
+				ptr_tmp = strstr(mybuf, "\r\n");
+				if((ptr != NULL) && (ptr_tmp != NULL)){
+					do{
+						UART_PrintChar(*ptr);
+					}while(ptr++ != ptr_tmp);
+					UART_PrintStr("\r\n");
+				}
 				/* Znajdź wartosć interwału meta-danych */
 				ptr = strstr(mybuf, "icy-metaint");
 				if(ptr != NULL){
@@ -316,6 +336,7 @@ reconect:
 
 					UART_PrintStr(RadioInf.Name);
 					UART_PrintStr("\r\n");
+					GLCD_DisplayString(0,0,RadioInf.Name);	/* Title on LCD */
 				}
 
 				/* Znajdź koniec nagłówka */
@@ -368,6 +389,7 @@ reconect:
 								}
 								Title[cnt] = '\0';				/* NULL na końcu tytułu */
 								UART_PrintStr("\r\n");
+								GLCD_DisplayString(3,0,Title);	/* Title on LCD */
 							}else
 								UART_PrintStr("NUL 2\r\n");
 						}else

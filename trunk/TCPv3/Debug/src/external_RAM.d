@@ -15,7 +15,8 @@ src/external_RAM.d src/external_RAM.o: ../src/external_RAM.c \
  D:\MyDesigns\LPCXpresso\TCPv3\FreeRTOS\include/mpu_wrappers.h \
  D:\MyDesigns\LPCXpresso\TCPv3\FreeRTOS\include/semphr.h \
  D:\MyDesigns\LPCXpresso\TCPv3\FreeRTOS\include/queue.h \
- D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/gpio.h
+ D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/gpio.h \
+ D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/uart.h
 
 D:\MyDesigns\LPCXpresso\CMSISv2p00_LPC17xx\inc/LPC17xx.h:
 
@@ -52,3 +53,5 @@ D:\MyDesigns\LPCXpresso\TCPv3\FreeRTOS\include/semphr.h:
 D:\MyDesigns\LPCXpresso\TCPv3\FreeRTOS\include/queue.h:
 
 D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/gpio.h:
+
+D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/uart.h:

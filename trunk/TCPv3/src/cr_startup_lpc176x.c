@@ -50,7 +50,7 @@ extern "C" {
 #if defined (__USE_CMSIS)
 #include "system_LPC17xx.h"
 #endif
-#include "uart.h"
+#include <stdio.h>
 
 //*****************************************************************************
 #if defined (__cplusplus)
@@ -358,7 +358,7 @@ void HardFault_Handler(void)
 					"LDR     R1,[R0,#24] \n"	// Read Saved PC from Stack
 					"MRS	R2, MSP \n"
 			);
-	UART_PrintStr("HARD FAULT !!!!!\r\n");
+	printf("HARD FAULT !!!!!\r\n");
     while(1)
     {
     }

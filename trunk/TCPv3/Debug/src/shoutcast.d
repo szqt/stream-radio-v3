@@ -37,7 +37,8 @@ src/shoutcast.d src/shoutcast.o: ../src/shoutcast.c \
  D:\MyDesigns\LPCXpresso\TCPv3\FreeRTOS\include/task.h \
  D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/gpio.h \
  D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/uart.h \
- ../src/external_RAM.h
+ ../src/external_RAM.h D:\MyDesigns\LPCXpresso\TCPv3\VS1053/vs1053.h \
+ D:\MyDesigns\LPCXpresso\TCPv3\LCD/GLCD.h
 
 D:\MyDesigns\LPCXpresso\TCPv3\lwip-1.4.0\src\include/lwip/opt.h:
 
@@ -116,3 +117,7 @@ D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/gpio.h:
 D:\MyDesigns\LPCXpresso\TCPv3\LPC1768_lib\include/uart.h:
 
 ../src/external_RAM.h:
+
+D:\MyDesigns\LPCXpresso\TCPv3\VS1053/vs1053.h:
+
+D:\MyDesigns\LPCXpresso\TCPv3\LCD/GLCD.h:

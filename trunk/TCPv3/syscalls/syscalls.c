@@ -1,71 +1,72 @@
-/**************************************************************************//*****
- * @file     stdio.c
- * @brief    Implementation of newlib syscall
- ********************************************************************************/
+//*****************************************************************************
+//   +--+
+//   | ++----+
+//   +-++    |
+//     |     |
+//   +-+--+  |
+//   | +--+--+
+//   +----+    Copyright (c) 2010 Code Red Technologies Ltd.
+//
+// retarget.c - provides stub routines to allow printf/scanf from Redlib C library
+//              to carry out I/O over UART
+//
+// Software License Agreement
+//
+// The software is owned by Code Red Technologies and/or its suppliers, and is
+// protected under applicable copyright laws.  All rights are reserved.  Any
+// use in violation of the foregoing restrictions may subject the user to criminal
+// sanctions under applicable laws, as well as to civil liability for the breach
+// of the terms and conditions of this license.
+//
+// THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+// USE OF THIS SOFTWARE FOR COMMERCIAL DEVELOPMENT AND/OR EDUCATION IS SUBJECT
+// TO A CURRENT END USER LICENSE AGREEMENT (COMMERCIAL OR EDUCATIONAL) WITH
+// CODE RED TECHNOLOGIES LTD.
+//
+//*****************************************************************************
 
+#include "uart.h"
+
+// Include stdio.h to pull in __REDLIB_INTERFACE_VERSION__
 #include <stdio.h>
-#include <stdarg.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
-#undef errno
-extern int errno;
-extern int  _end;
+#if (__REDLIB_INTERFACE_VERSION__ >= 20000)
+// We are using new Redlib_v2 semihosting interface
+	#define WRITEFUNC __sys_write
+	#define READFUNC __sys_readc
+#else
+// We are using original Redlib semihosting interface
+	#define WRITEFUNC __write
+	#define READFUNC __readc
+#endif
 
-caddr_t _sbrk ( int incr )
+
+// Function __write() / __sys_write
+//
+// Called by bottom level of printf routine within RedLib C library to write
+// a character. With the default semihosting stub, this would write the character
+// to the debugger console window . But this version writes
+// the character to the LPC1768/RDB1768 UART.
+int WRITEFUNC (int iFileHandle, char *pcBuffer, int iLength)
 {
-  static unsigned char *heap = NULL;
-  unsigned char *prev_heap;
-
-  if (heap == NULL) {
-    heap = (unsigned char *)&_end;
-  }
-  prev_heap = heap;
-
-  heap += incr;
-
-  return (caddr_t) prev_heap;
+	unsigned int i;
+	for (i = 0; i<iLength; i++)
+	{
+		UART_Sendchar(pcBuffer[i]); // print each character
+	}
+	return iLength;
 }
 
-int link(char *old, char *new) {
-return -1;
-}
-
-int _close(int file)
+// Function __readc() / __sys_readc
+//
+// Called by bottom level of scanf routine within RedLib C library to read
+// a character. With the default semihosting stub, this would read the character
+// from the debugger console window (which acts as stdin). But this version reads
+// the character from the LPC1768/RDB1768 UART.
+int READFUNC (void)
 {
-  return -1;
+	char c = UART_Getchar();
+	return (int)c;
 }
-
-int _fstat(int file, struct stat *st)
-{
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-
-int _isatty(int file)
-{
-  return 1;
-}
-
-int _lseek(int file, int ptr, int dir)
-{
-  return 0;
-}
-
-int _read(int file, char *ptr, int len)
-{
-  return 0;
-}
-
-int _write(int file, char *ptr, int len)
-{
-  return len;
-}
-
-void abort(void)
-{
-  /* Abort called */
-  while(1);
-}
-          
-/* --------------------------------- End Of File ------------------------------ */

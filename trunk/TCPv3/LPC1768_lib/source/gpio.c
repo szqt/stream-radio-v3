@@ -13,10 +13,10 @@
  *------------------------------------------------------------------------------*/
 void LED_Config(void) {
 
-	LPC_SC->PCONP |= (1 <<15);	//włącz GPIO
-	LPC_GPIO2->FIOMASK = 0;
-	LPC_GPIO2->FIODIR |= 0x000000FF;	// P2.0 jako wyjcie
-	LPC_GPIO2->FIOPIN &= ~0x000000FF;	// diody zgaszone
+//	LPC_SC->PCONP |= (1 <<15);	//włącz GPIO
+//	LPC_GPIO2->FIOMASK = 0;
+//	LPC_GPIO2->FIODIR |= 0x000000FF;	// P2.0 jako wyjcie
+//	LPC_GPIO2->FIOPIN &= ~0x000000FF;	// diody zgaszone
 }
 
 /*------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ void LED_Config(void) {
  *------------------------------------------------------------------------------*/
 void LED_On (uint8_t led) {
 
-  LPC_GPIO2->FIOPIN |=  (1<<led);                  /* Turn On  LED */
+  //LPC_GPIO2->FIOPIN |=  (1<<led);                  /* Turn On  LED */
 }
 
 
@@ -33,7 +33,7 @@ void LED_On (uint8_t led) {
  *------------------------------------------------------------------------------*/
 void LED_Off (uint8_t led) {
 
-  LPC_GPIO2->FIOPIN &= ~(1<<led);                  /* Turn Off LED */
+  //LPC_GPIO2->FIOPIN &= ~(1<<led);                  /* Turn Off LED */
 }
 
 /*------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ void LED_Off (uint8_t led) {
  *------------------------------------------------------------------------------*/
 void LED_Toggle (uint8_t led) {
 
-  LPC_GPIO2->FIOPIN ^= (1<<led);                  /* Toggle LED */
+  //LPC_GPIO2->FIOPIN ^= (1<<led);                  /* Toggle LED */
 }
 
 /*------------------------------------------------------------------------------
