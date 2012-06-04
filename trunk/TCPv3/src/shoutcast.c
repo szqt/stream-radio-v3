@@ -21,33 +21,24 @@
 #include "external_RAM.h"
 #include "vs1053.h"
 
-#include "GLCD.h"
+//#include "GLCD.h"
+#include "GUI.h"
+#include "PROGBAR.h"
+
+#include "shoutcast.h"
+#include "stations.h"
 
 #if LWIP_NETCONN
-
-void shoutcast(void *pdata);
-void PrintERR(err_t rc);
-
-#define sizeScast				600		//wykorzystuje ok 130 można dać 200
-#define prioScast				4
-#define STATION_NAME_MAX_LEN	100
-#define TITLE_MAX_LEN			100
 
 extern xTaskHandle xVsTskHandle;
 extern xSemaphoreHandle xDhcpCmplSemaphore_1;
 extern xSemaphoreHandle xSPI1_Mutex;
 xSemaphoreHandle xDMAch0_Semaphore = NULL;
 xSemaphoreHandle xDMAch2_Semaphore = NULL;
-//xSemaphoreHandle xVS_stopped = NULL;
+
 //__DATA(RAM2) char mybuf[6144];
 __SECTION(bss,RAM2) char mybuf[6144];
 
-struct{
-	int MetaInt;					/* interwał meta-danych stacji */
-	char Name[STATION_NAME_MAX_LEN];	/* pole nazwy stacji */
-
-}RadioInf;
-char Title[TITLE_MAX_LEN];\
 xTaskHandle xShoutcastTaskHandle;
 unsigned char IPradio_init(void)
 {
@@ -73,65 +64,18 @@ void shoutcast(void *pdata) {
 	struct ip_addr ipaddrserv;
 	u16_t portserv;
 	err_t rc1, rc2, rc3, rc4;
-	u8_t cnt;
-	u16_t CpBytes, MetaDataLen, BufLen, MDLpos;
+	u8_t cnt, buffering_progress;
+	u16_t CpBytes, MetaDataLen, BufLen, MDLpos, LeftMetaDataFrame;
 	char *ptr, *ptr_tmp;
 	int HeaderLen, DataCounter=0;
 	char flaga = 0, dummy;
+	uint32_t buffered_byte;
+	PROGBAR_Handle BuffProgBar;
+	enum state eState = MODE1;
 
 
-	/* ZET AAC+ 32bps port 8050 */
-	const char string1[] = "GET / HTTP/1.0\r\nHost: 89.149.227.111\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 89, 149, 227, 111);
-//	portserv = 8050;
 
-	/* EuropaFM AAC+ Romiania 32kbps port 7000*/
-	const char string2[] = "GET / HTTP/1.0\r\nHost: 89.238.252.146\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 89, 238, 252, 146);
-//	portserv = 7000;
 
-	/* idobi Radio MP3 128kbps port 80 */
-	const char string3[] = "GET / HTTP/1.0\r\nHost: 50.117.115.211\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 50, 117, 115, 211);
-//	portserv = 80;
-
-	/* RMF MAXXX AAC+ 48kbps port 9002 */
-	const char string4[] = "GET / HTTP/1.0\r\nHost: 217.74.72.12\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 217, 74, 72, 12);
-//	portserv = 9002;
-
-	/* Alex Jones - Infowars.com MP3 32kbps port 80 */
-	const char string5[] = "GET / HTTP/1.0\r\nHost: 50.7.241.126\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 50, 7, 241, 126);
-//	portserv = 80;
-
-	/* TechnoBase.FM MP3 128kbps port 80 */
-	const char string6[] = "GET / HTTP/1.0\r\nHost: 85.17.26.74\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 85, 17, 26, 74);
-//	portserv = 80;
-
-	/* French Kiss FM MP3 128kbps port 80 */
-	const char string7[] = "GET / HTTP/1.0\r\nHost: 80.190.234.235\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 80, 190, 234, 235);
-//	portserv = 80;
-
-	const char string8p1[] = "GET / HTTP/1.0\r\n";
-	const char string8p2[] = "Host: 217.74.72.10\r\n";
-	const char string8p3[] = "User-Agent: WEBRADIO\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-	/* RMF AAC+ 48bps port 9000 */
-	const char string8[] = "GET / HTTP/1.0\r\nHost: 217.74.72.10\r\nUser-Agent: WEBRADIO\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
-//	portserv = 9000;
-
-	/* SKY.FM FM MP3 96kbps port 80 */
-	const char string9[] = "GET /stream/1010 HTTP/1.0\r\nHost: scfire-dtc-aa04.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 207, 200, 96, 231); //
-//	portserv = 80;
-
-	/* 181.FM MP3 128kbps port 8002 */
-	const char string10[] = "GET /stream/1022 HTTP/1.0\r\nHost: scfire-ntc-aa05.stream.aol.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
-//	IP4_ADDR(&ipaddrserv, 207, 200, 96, 134);
-//	portserv = 80;
 
 	while(LPC_UART2->LSR & 0x01){		//wyczysc Rx FIFO
 		dummy=LPC_UART2->RBR;
@@ -302,6 +246,7 @@ reconect:
 				PrintERR(rc1);
 			}
 			vTaskDelay(4000/portTICK_RATE_MS);
+
 			while((netconn_recv(NetConn, &inbuf)) == ERR_OK){
 				BufLen = netbuf_len(inbuf);
 				CpBytes = netbuf_copy(inbuf, mybuf, BufLen);
@@ -336,7 +281,9 @@ reconect:
 
 					UART_PrintStr(RadioInf.Name);
 					UART_PrintStr("\r\n");
-					GLCD_DisplayString(0,0,RadioInf.Name);	/* Title on LCD */
+					GUI_SetFont(&GUI_Font16B_ASCII);
+					GUI_DispStringHCenterAt(RadioInf.Name,160, 15);
+					//					GLCD_DisplayString(0,0,RadioInf.Name);	/* Title on LCD */
 				}
 
 				/* Znajdź koniec nagłówka */
@@ -348,65 +295,183 @@ reconect:
 					break;
 				}
 			}
+			/* Utwórz pasek postępu */
+			GUI_SetColor(GUI_WHITE);
+			GUI_SetFont(&GUI_Font8x16);
+			GUI_DispStringHCenterAt("Buffering...",180, 80);
+			BuffProgBar = PROGBAR_Create(110, 100, 100, 20, WM_CF_SHOW);
+			PROGBAR_SetValue(BuffProgBar, 0);
+			WM_Paint(BuffProgBar);
+
 			while((rc3 = netconn_recv(NetConn, &inbuf)) == ERR_OK){
 
 				BufLen = netbuf_len(inbuf);
 				if(BufLen > 6144){
-					UART_PrintStr("ERROR3\r\n");
+					printf("ERROR3\r\n");
 				}
 				CpBytes= netbuf_copy(inbuf, mybuf, BufLen);	/* Skopiuj odebrane dane */
 				netbuf_delete(inbuf);						/* Zwolnij bufor */
 
-				if(RAM_buflen() == 0 && flaga == 1){					/* Bufor jest pusty - zatrzymaj zadanie VS */
-					UART_PrintStr("BFF EMPTY\r\n");
+				if(RAM_buflen() == 0 && flaga == PLAY){					/* Bufor jest pusty - zatrzymaj zadanie VS */
+					printf("BUFF EMPTY\r\n");
 //					xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY);			/* poczekaj aż VS zwolni SPI1 */
 					vTaskSuspend(xVsTskHandle);
 //					xSemaphoreGive(xSPI1_Mutex);						/* Oddaj mutex */
-
-//					vs_write_reg(VS_MODE, SM_SDINEW | SM_RESET);
-
-					flaga = 0;
+					flaga = STOP;
 					resetbuff();						/* Resetuj bufor */
+
+					/* Utwórz pasek postępu */
+					GUI_SetFont(&GUI_Font8x16);
+					GUI_DispStringHCenterAt("Buffering...",180, 80);
+					BuffProgBar = PROGBAR_Create(110, 100, 100, 20, WM_CF_SHOW);
+					PROGBAR_SetBarColor(BuffProgBar, 0, GUI_DARKGRAY);
+					PROGBAR_SetBarColor(BuffProgBar, 1, GUI_LIGHTGRAY);
+					PROGBAR_SetValue(BuffProgBar, 0);
+					WM_Paint(BuffProgBar);
 				}
 
 				DataCounter += CpBytes;
 
 				/* W odebranych danych są meta-dane */
 				if(DataCounter > RadioInf.MetaInt){
-					MDLpos = CpBytes-(DataCounter-RadioInf.MetaInt);				/* Pozycja MetaDataLength */
-					MetaDataLen = 16*mybuf[CpBytes-(DataCounter-RadioInf.MetaInt)];	/* Długoć MetaDanych */
+					switch(eState){
+					case MODE1:
+						MDLpos = CpBytes-(DataCounter-RadioInf.MetaInt);				/* Pozycja MetaDataLength */
+						MetaDataLen = 16*mybuf[CpBytes-(DataCounter-RadioInf.MetaInt)];	/* Długosć MetaDanych */
+						printf("CpBytes = %d\r\n", CpBytes);
+						printf("MDLpos = %d\r\n", MDLpos);
+						printf("MetaDataLen = %d\r\n", MetaDataLen);
+						if (MetaDataLen > 0){							/* czy ramka nie jest pusta? */
+							if((CpBytes - MDLpos - 1) >= MetaDataLen){	/* czy cała ramka została odebrana? */
+								ptr = strstr((mybuf+MDLpos + 1), "'");		/* 27 = ascii "'" */
+								if(ptr != NULL){
+									ptr_tmp = strstr(ptr+1, "';");				/* koniec pola StreamTitle */
+									if(ptr_tmp != NULL){
+										cnt = 0;
+										while(++ptr != ptr_tmp && cnt < TITLE_MAX_LEN-1){
+											UART_PrintChar(*ptr);
+											RadioInf.Title[cnt] = *ptr;
+											cnt++;
+										}
+										RadioInf.Title[cnt] = '\0';				/* NULL na końcu tytułu */
+										UART_PrintStr("\r\n");
 
-					if (MetaDataLen > 0){
+										GUI_SetFont(&GUI_Font10S_ASCII);
+										GUI_ClearRect(0, 38, 360, 52);
+										GUI_DispStringHCenterAt(RadioInf.Title,160, 45);
+									}else{
+										/* Niestandarowy format zapisu zarmi danych ? */
+									}
+								}else{
+									/* Niestandarowy format zapisu zarmi danych ? */
+								}
+							}else{										/* Odebrany został tylko kawałek ramki */
+								LeftMetaDataFrame = MetaDataLen - (CpBytes - MDLpos - 1);	/* Jeszcze brakuje tyle bajtów ramki */
+								ptr = strstr((mybuf+MDLpos + 1), "'");	/* 27 = ascii "'" */
+								if(ptr != NULL){						/* Jest początek tytułu */
+									cnt = 0;
+									while(ptr++ != &mybuf[CpBytes-1] && cnt < TITLE_MAX_LEN-1){
+										UART_PrintChar(*ptr);
+										RadioInf.Title[cnt] = *ptr;
+										cnt++;
+									}
+
+									while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
+										vTaskDelay(5/portTICK_RATE_MS);
+									}
+									RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+
+									DataCounter = RadioInf.MetaInt;
+									eState = MODE2;
+									break;
+								}else{									/* Niema nawet początku tytułu */
+
+									while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
+										vTaskDelay(5/portTICK_RATE_MS);
+									}
+									RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+
+									DataCounter = RadioInf.MetaInt;
+									eState = MODE3;
+									break;
+								}
+							}
+						}
+						DataCounter=DataCounter-RadioInf.MetaInt-MetaDataLen-1;			/* Ilosć danych audio przed meta-danymi */
+
+						while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
+							vTaskDelay(5/portTICK_RATE_MS);
+						}
+						RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+
+						while(RAM_buffree() < (CpBytes - MDLpos - MetaDataLen - 1)){		/* Sprawdź czy jest miejsce w buforze vs */
+							vTaskDelay(5/portTICK_RATE_MS);
+						}
+						RAM_bufputs(mybuf+MDLpos+MetaDataLen+1, (CpBytes - MDLpos - MetaDataLen - 1));		/* Dane po meta danych */
+						break;
+
+					case MODE2:
+						ptr_tmp = strstr(mybuf, "';");									/* koniec pola StreamTitle */
+						if(ptr_tmp != NULL){
+							ptr = mybuf;
+
+							while(ptr != ptr_tmp && cnt < TITLE_MAX_LEN-1){
+								UART_PrintChar(*ptr);
+								RadioInf.Title[cnt] = *ptr;
+								ptr++;
+								cnt++;
+							}
+							RadioInf.Title[cnt] = '\0';				/* NULL na końcu tytułu */
+							UART_PrintStr("\r\n");
+
+							GUI_SetFont(&GUI_Font10S_ASCII);
+							GUI_DispStringHCenterAt(RadioInf.Title,160, 45);
+						}else{
+							/* Niestandarowy format zapisu zarmi danych ? */
+						}
+
+						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){			/* Sprawdź czy jest miejsce w buforze vs */
+							vTaskDelay(5/portTICK_RATE_MS);
+						}
+						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));		/* Dane po metadanych */
+
+						DataCounter = CpBytes - LeftMetaDataFrame;
+						eState = MODE1;
+						break;
+					case MODE3:
 						ptr = strstr((mybuf+MDLpos + 1), "'");		/* 27 = ascii "'" */
 						if(ptr != NULL){
 							ptr_tmp = strstr(ptr+1, "';");				/* koniec pola StreamTitle */
 							if(ptr_tmp != NULL){
-								cnt=0;
+								cnt = 0;
 								while(++ptr != ptr_tmp && cnt < TITLE_MAX_LEN-1){
 									UART_PrintChar(*ptr);
-									Title[cnt] = *ptr;
+									RadioInf.Title[cnt] = *ptr;
 									cnt++;
 								}
-								Title[cnt] = '\0';				/* NULL na końcu tytułu */
+								RadioInf.Title[cnt] = '\0';				/* NULL na końcu tytułu */
 								UART_PrintStr("\r\n");
-								GLCD_DisplayString(3,0,Title);	/* Title on LCD */
-							}else
-								UART_PrintStr("NUL 2\r\n");
-						}else
-							UART_PrintStr("NUL 1\r\n");
-					}
 
-					DataCounter=DataCounter-RadioInf.MetaInt-MetaDataLen-1;			/* Ilosć danych audio przed meta-danymi */
+								GUI_SetFont(&GUI_Font10S_ASCII);
+								GUI_ClearRect(0, 38, 360, 52);
+								GUI_DispStringHCenterAt(RadioInf.Title,160, 45);
+							}else{
+								/* Niestandarowy format zapisu zarmi danych ? */
+							}
+						}else{
+							/* Niestandarowy format zapisu zarmi danych ? */
+						}
 
-					while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
-						vTaskDelay(5/portTICK_RATE_MS);
-					}
-					RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){			/* Sprawdź czy jest miejsce w buforze vs */
+							vTaskDelay(5/portTICK_RATE_MS);
+						}
+						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));		/* Dane po metadanych */
 
-					while(RAM_buffree() < (CpBytes - MDLpos - MetaDataLen - 1)){		/* Sprawdź czy jest miejsce w buforze vs */
-						vTaskDelay(5/portTICK_RATE_MS);
+						DataCounter = CpBytes - LeftMetaDataFrame;
+						eState = MODE1;
+						break;
+
 					}
-					RAM_bufputs(mybuf+MDLpos+MetaDataLen+1, (CpBytes - MDLpos - MetaDataLen - 1));		/* Dane po meta danych */
 				}
 				/* W odebranych danych niema meta-danych */
 				else{
@@ -416,27 +481,37 @@ reconect:
 					RAM_bufputs(mybuf, CpBytes);
 				}
 
+				if(flaga == STOP){
+					buffered_byte = RAM_buflen();
+					buffering_progress = (buffered_byte*100)/(BUFF_TRESH);
 
-				if(RAM_buflen()>256*1024 && flaga == 0){	/* Bufor jest pełny */
-//					vs_write_reg(VS_MODE, SM_SDINEW | SM_RESET);
-					vTaskResume(xVsTskHandle);				/* Uruchom zadanie dekodera */
-					flaga=1;								/* Ustaw flagę uruchomienia zadania dekodera */
+					if(buffering_progress>100) buffering_progress = 100;
+
+					PROGBAR_SetValue(BuffProgBar, buffering_progress);
+					WM_Paint(BuffProgBar);
+					if(RAM_buflen()>BUFF_TRESH && flaga == STOP){	/* Bufor jest pełny */
+						vTaskResume(xVsTskHandle);				/* Uruchom zadanie dekodera */
+						flaga = PLAY;								/* Ustaw flagę uruchomienia zadania dekodera */
+						/*Usuń pasek postępu */
+						PROGBAR_Delete(BuffProgBar);
+						GUI_ClearRect(0, 80, 360, 120);
+					}
 				}
 
 				LED_Toggle(1);
 			}
-			UART_PrintStr("Recv error: ");
+			printf("Recv error: ");
 			PrintERR(rc3);
 
 			LED_On(0);
 			rc4=netconn_close(NetConn);
 			if(rc4 != ERR_OK){
-				UART_PrintStr("Ncon_close error: ");
+				printf("Ncon_close error: ");
 				PrintERR(rc4);
 			}
-			UART_PrintStr("netcon closed\r\n");
+			printf("netcon closed\r\n");
 			netconn_delete(NetConn);
-			UART_PrintStr("netcon deleted\r\n");
+			printf("netcon deleted\r\n");
 			vTaskDelay(1000/portTICK_RATE_MS);
 			goto reconect;
 		}
@@ -447,52 +522,52 @@ reconect:
 void PrintERR(err_t rc){
 	switch(rc){
 	case ERR_OK:
-		UART_PrintStr("ERR_OK - No error, everything OK.\r\n");
+		printf("ERR_OK - No error, everything OK.\r\n");
 		break;
 	case ERR_MEM:
-		UART_PrintStr("ERR_MEM - Out of memory error.\r\n");
+		printf("ERR_MEM - Out of memory error.\r\n");
 		break;
 	case ERR_BUF:
-		UART_PrintStr("ERR_BUF - Buffer error.\r\n");
+		printf("ERR_BUF - Buffer error.\r\n");
 		break;
 	case ERR_TIMEOUT:
-		UART_PrintStr("ERR_TIMEOUT - Timeout.\r\n");
+		printf("ERR_TIMEOUT - Timeout.\r\n");
 		break;
 	case ERR_RTE:
-		UART_PrintStr("ERR_RTE - Routing problem.\r\n");
+		printf("ERR_RTE - Routing problem.\r\n");
 		break;
 	case ERR_INPROGRESS:
-		UART_PrintStr("ERR_INPROGRESS - Operation in progress.\r\n");
+		printf("ERR_INPROGRESS - Operation in progress.\r\n");
 		break;
 	case ERR_VAL:
-		UART_PrintStr("ERR_VAL - Illegal value.\r\n");
+		printf("ERR_VAL - Illegal value.\r\n");
 		break;
 	case ERR_WOULDBLOCK:
-		UART_PrintStr("ERR_WOULDBLOCK - Operation would block.\r\n");
+		printf("ERR_WOULDBLOCK - Operation would block.\r\n");
 		break;
 	case ERR_USE:
-		UART_PrintStr("ERR_USE - Address in use.\r\n");
+		printf("ERR_USE - Address in use.\r\n");
 		break;
 	case ERR_ISCONN:
-		UART_PrintStr("ERR_ISCONN - Already connected.\r\n");
+		printf("ERR_ISCONN - Already connected.\r\n");
 		break;
 	case ERR_ABRT:
-		UART_PrintStr("ERR_ABRT - Connection aborted.\r\n");
+		printf("ERR_ABRT - Connection aborted.\r\n");
 		break;
 	case ERR_RST:
-		UART_PrintStr("ERR_RST - Connection reset.\r\n");  /* Server is refuse to be connect */
+		printf("ERR_RST - Connection reset.\r\n");  /* Server is refuse to be connect */
 		break;
 	case ERR_CLSD:
-		UART_PrintStr("ERR_CLSD - Connection closed.\r\n");
+		printf("ERR_CLSD - Connection closed.\r\n");
 		break;
 	case ERR_CONN:
-		UART_PrintStr("ERR_CONN - Not connected.\r\n");
+		printf("ERR_CONN - Not connected.\r\n");
 		break;
 	case ERR_ARG:
-		UART_PrintStr("ERR_ARG - Illegal argument.\r\n");
+		printf("ERR_ARG - Illegal argument.\r\n");
 		break;
 	case ERR_IF:
-		UART_PrintStr("ERR_IF - Low-level netif error.\r\n");
+		printf("ERR_IF - Low-level netif error.\r\n");
 		break;
 	default:
 		break;

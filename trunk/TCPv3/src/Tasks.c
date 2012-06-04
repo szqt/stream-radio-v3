@@ -16,6 +16,8 @@
 #include "gpio.h"
 
 
+
+
 /*--- GLOBALS ---*/
 xSemaphoreHandle xDMAch1_Semaphore = NULL;
 extern xSemaphoreHandle xSPI0_Mutex;
@@ -37,6 +39,17 @@ void vVsTask(void * pvParameters) {
 		vTaskDelay(15/portTICK_RATE_MS);
 	}
 }
+
+//void vGUITask(void * pvParameters) {
+//	GUI_Init();
+//	while (1) {
+//		if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
+//			VS_feed();
+//			xSemaphoreGive(xSPI0_Mutex);
+//		}
+//		vTaskDelay(15/portTICK_RATE_MS);
+//	}
+//}
 
 void vIamLiveTask (void * pvParameters){
 //	static uint8_t last_vol = 0;

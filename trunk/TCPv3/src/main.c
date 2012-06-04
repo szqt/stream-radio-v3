@@ -38,7 +38,9 @@
 #include "adc.h"
 #include "external_RAM.h"
 #include "DMA.h"
-#include "GLCD.h"
+//#include "GLCD.h"
+
+#include "GUI.h"
 
 #include "Tasks.h"
 
@@ -75,8 +77,20 @@ struct netif *loop_netif;
 int main()
 {
 	DelayTimer_Config();
-	GLCD_Init();
-	GLCD_Clear(Purple);
+//	GLCD_Init();
+//	GLCD_Clear(Purple);
+
+
+
+
+	GUI_Init();
+	GUI_SetBkColor(GUI_BLACK);
+	GUI_Clear();
+//	GUI_DispString("Hello world!");
+
+
+
+
 	LED_Config();
 	BUTTON_Config();
 	UART2_Config(115200);
