@@ -1311,6 +1311,8 @@ void VS_feed(void){
 		len = RAM_buflen();								/* Sprawdż ile jest danych w buforze */
 		if(len>32){
 			len=32;
+		}else{
+			break;
 		}
 //		if(len==0)
 //			break;
