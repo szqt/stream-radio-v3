@@ -25,7 +25,7 @@ struct{
 
 }RadioInf;
 
-enum state {MODE1, MODE2, MODE3};
+enum state {MODE1, MODE2, MODE3, MODE4};
 
 void 		shoutcast(void *pdata);
 void 		PrintERR(err_t rc);
