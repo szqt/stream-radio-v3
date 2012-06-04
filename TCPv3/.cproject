@@ -64,6 +64,24 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/lwip-1.4.0/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/lwip-1.4.0/src/include/ipv6}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/VS1053}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/LCD}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/Config}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/GLCD}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/inc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/GUI_X}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/TouchPanel}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/AntiAlias}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/ConvertColor}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/ConvertMono}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/Core}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/Font}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/JPEG}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/MemDev}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/MultiLayer}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/Widget}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/WM}&quot;"/>
 								</option>
 								<inputType id="com.crt.advproject.compiler.input.1007933450" superClass="com.crt.advproject.compiler.input"/>
 							</tool>
@@ -111,13 +129,15 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="stdio"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="VS1053"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="uCGUI"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/source"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/include"/>
 						<entry excluding="src/core/ipv6" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="lwip-1.4.0"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/include"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="syscalls"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="stdio"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="FreeRTOS"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/source"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="VS1053"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -255,7 +275,7 @@
 						<parser enabled="true"/>
 					</scannerInfoProvider>
 				</profile>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.;com.crt.advproject.gcc.exe.release.878989894;com.crt.advproject.compiler.input.1688344766">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.debug.1420249381.1357620737;com.crt.advproject.compiler.input.1915560680">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -368,7 +388,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.debug.1420249381.1357620737;com.crt.advproject.compiler.input.1915560680">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.;com.crt.advproject.gcc.exe.release.878989894;com.crt.advproject.compiler.input.1688344766">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -594,7 +614,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.1010510976;com.crt.advproject.gas.exe.debug.1399045936;com.crt.advproject.assembler.input.888797259">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.release.878989894.1976476379;com.crt.advproject.compiler.input.268626734">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -707,7 +727,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.release.878989894.1976476379;com.crt.advproject.compiler.input.268626734">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.1010510976;com.crt.advproject.gas.exe.debug.1399045936;com.crt.advproject.assembler.input.888797259">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -1274,13 +1294,14 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="stdio"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="VS1053"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="lwip-1.4.0/port/FreeRTOS"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="uCGUI"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="FreeRTOS"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/source"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="stdio"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/include"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="LPC1768_lib/source"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="VS1053"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="lwip-1.4.0/port/FreeRTOS"/>
 						<entry excluding="core/ipv6|include/ipv6" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="lwip-1.4.0/src"/>
 					</sourceEntries>
 				</configuration>
@@ -1412,7 +1433,7 @@
 						<parser enabled="true"/>
 					</scannerInfoProvider>
 				</profile>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.;com.crt.advproject.gcc.exe.release.878989894;com.crt.advproject.compiler.input.1688344766">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.debug.1420249381.1357620737;com.crt.advproject.compiler.input.1915560680">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -1525,7 +1546,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.debug.1420249381.1357620737;com.crt.advproject.compiler.input.1915560680">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.;com.crt.advproject.gcc.exe.release.878989894;com.crt.advproject.compiler.input.1688344766">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -1751,7 +1772,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.1010510976;com.crt.advproject.gas.exe.debug.1399045936;com.crt.advproject.assembler.input.888797259">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.release.878989894.1976476379;com.crt.advproject.compiler.input.268626734">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -1864,7 +1885,7 @@
 						</scannerInfoProvider>
 					</profile>
 				</scannerConfigBuildInfo>
-				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.release.140360136;com.crt.advproject.config.exe.release.140360136.src/cr_startup_lpc176x.c;com.crt.advproject.gcc.exe.release.878989894.1976476379;com.crt.advproject.compiler.input.268626734">
+				<scannerConfigBuildInfo instanceId="com.crt.advproject.config.exe.debug.2052010745;com.crt.advproject.config.exe.debug.2052010745.1010510976;com.crt.advproject.gas.exe.debug.1399045936;com.crt.advproject.assembler.input.888797259">
 					<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.crt.advproject.GCCManagedMakePerProjectProfile"/>
 					<profile id="com.crt.advproject.GCCManagedMakePerProjectProfileCPP">
 						<buildOutputProvider>
@@ -2326,7 +2347,10 @@
 		<projectStorage>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&#13;
 &lt;TargetConfig&gt;&#13;
 &lt;Properties property_0="" property_1="" property_2="" property_3="NXP" property_4="LPC1768" property_count="5" version="1"/&gt;&#13;
-&lt;infoList vendor="NXP"&gt;&lt;info chip="LPC1768" match_id="0x00013f37,0x26013F37,0x26113F37" name="LPC1768" package="lpc17_lqfp100.xml"&gt;&lt;chip&gt;&lt;name&gt;LPC1768&lt;/name&gt;&#13;
+&lt;infoList vendor="NXP"&gt;&#13;
+&lt;info chip="LPC1768" match_id="0x00013f37,0x26013F37,0x26113F37" name="LPC1768" package="lpc17_lqfp100.xml"&gt;&#13;
+&lt;chip&gt;&#13;
+&lt;name&gt;LPC1768&lt;/name&gt;&#13;
 &lt;family&gt;LPC17xx&lt;/family&gt;&#13;
 &lt;vendor&gt;NXP (formerly Philips)&lt;/vendor&gt;&#13;
 &lt;reset board="None" core="Real" sys="Real"/&gt;&#13;
@@ -2387,7 +2411,8 @@
 &lt;peripheralInstance derived_from="LPC17_CANCON" determined="infoFile" enable="SYSCTL.PCONP.PCCAN2&amp;amp;0x1" id="CANCON2" location="0x40048000"/&gt;&#13;
 &lt;peripheralInstance derived_from="LPC17_MCPWM" determined="infoFile" enable="SYSCTL.PCONP.PCMCPWM&amp;amp;0x1" id="MCPWM" location="0x400B8000"/&gt;&#13;
 &lt;/chip&gt;&#13;
-&lt;processor&gt;&lt;name gcc_name="cortex-m3"&gt;Cortex-M3&lt;/name&gt;&#13;
+&lt;processor&gt;&#13;
+&lt;name gcc_name="cortex-m3"&gt;Cortex-M3&lt;/name&gt;&#13;
 &lt;family&gt;Cortex-M&lt;/family&gt;&#13;
 &lt;/processor&gt;&#13;
 &lt;link href="nxp_lpcxxxx_peripheral.xme" show="embed" type="simple"/&gt;&#13;
