@@ -80,17 +80,18 @@ void shoutcast(void *pdata) {
 	while(LPC_UART2->LSR & 0x01){		//wyczysc Rx FIFO
 		dummy=LPC_UART2->RBR;
 	}
-	printf("Wybierz stację radiową\r\n");
-	UART_PrintStr("a - ZET AAC+ 32bps\r\n");
-	UART_PrintStr("b - EuropaFM AAC+ Romiania 32kbps\r\n");
-	UART_PrintStr("c - idobi Radio MP3 128kbps\r\n");
-	UART_PrintStr("d - RMF MAXXX AAC+ 48kbps\r\n");
-	UART_PrintStr("e - Alex Jones - Infowars.com MP3 32kbps\r\n");
-	UART_PrintStr("f - TechnoBase.FM MP3 128kbps\r\n");
-	UART_PrintStr("g - RMF AAC+ 48bps - test\r\n");
-	UART_PrintStr("h - RMF AAC+ 48bps\r\n");
-	UART_PrintStr("i - SKY.FM FM MP3 96kbps\r\n");
-	UART_PrintStr("j - 181.FM MP3 128kbps\r\n");
+	printf("Wybierz stacje radiowa\r\n");
+	printf("a - ZET AAC+ 32bps\r\n");
+	printf("b - EuropaFM AAC+ Romiania 32kbps\r\n");
+	printf("c - idobi Radio MP3 128kbps\r\n");
+	printf("d - RMF MAXXX AAC+ 48kbps\r\n");
+	printf("e - Alex Jones - Infowars.com MP3 32kbps\r\n");
+	printf("f - TechnoBase.FM MP3 128kbps\r\n");
+	printf("g - RMF AAC+ 48bps - test\r\n");
+	printf("h - RMF AAC+ 48bps\r\n");
+	printf("i - SKY.FM FM MP3 96kbps\r\n");
+	printf("j - 181.FM MP3 128kbps\r\n");
+	printf("k - Eska Rock MP3 128kbps\r\n");
 	cnt = 200;
 	while(!(LPC_UART2->LSR & 0x01)){			//czeka na znak
 		vTaskDelay(100/portTICK_RATE_MS);
@@ -145,7 +146,8 @@ void shoutcast(void *pdata) {
 		portserv = 80;
 		break;
 	case 'k':
-
+		IP4_ADDR(&ipaddrserv, 156, 17, 254, 15);
+		portserv = 8000;
 		break;
 	default:
 		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
@@ -182,25 +184,25 @@ reconect:
 
 		if(NetConn == NULL){
 			/*No memory for new connection? */
-			UART_PrintStr("No mem for new con\r\n");
+			printf("No mem for new con\r\n");
 		}
 		while((rc1 = netconn_bind(NetConn, NULL, 3250)) != ERR_OK){	/* Adres IP i port local host'a */
-			UART_PrintStr("Ncon_bind error: ");
+			printf("Ncon_bind error: ");
 			PrintERR(rc1);
 			vTaskDelay(10000/portTICK_RATE_MS); 		// wait 10 sec
 		}
-		UART_PrintStr("netcon binded\r\n");
+		printf("netcon binded\r\n");
 
 		rc2 = netconn_connect(NetConn, &ipaddrserv, portserv);		/* Adres IP i port serwera */
 
 		if(rc2 != ERR_OK){
-			UART_PrintStr("Ncon_connect error: ");
+			printf("Ncon_connect error: ");
 			PrintERR(rc2);
 			LED_On(0);
 			netconn_delete(NetConn);
 			goto reconect;
 		}else{
-			UART_PrintStr("netcon connected\r\n");
+			printf("netcon connected\r\n");
 			LED_Off(0);
 
 			switch(dummy){
@@ -236,13 +238,16 @@ reconect:
 			case 'j':
 				rc1 = netconn_write(NetConn, string10, sizeof(string10), NETCONN_NOCOPY);
 				break;
+			case 'k':
+				rc1 = netconn_write(NetConn, string11, sizeof(string11), NETCONN_NOCOPY);
+				break;
 			default:
 				rc1 = netconn_write(NetConn, string8, sizeof(string8), NETCONN_NOCOPY);
 				break;
 			}
 //			rc1 = netconn_write(NetConn, string, sizeof(string), NETCONN_NOCOPY);
 			if(rc1 != ERR_OK){
-				UART_PrintStr("Ncon_write error: ");
+				printf("Ncon_write error: ");
 				PrintERR(rc1);
 			}
 			vTaskDelay(4000/portTICK_RATE_MS);
@@ -322,7 +327,7 @@ reconect:
 
 					/* Utwórz pasek postępu */
 					GUI_SetFont(&GUI_Font8x16);
-					GUI_DispStringHCenterAt("Buffering...",160, 80);
+					GUI_DispStringHCenterAt("Buff empty - buffering...",160, 80);
 					BuffProgBar = PROGBAR_Create(110, 100, 100, 20, WM_CF_SHOW);
 					PROGBAR_SetBarColor(BuffProgBar, 0, GUI_DARKGRAY);
 					PROGBAR_SetBarColor(BuffProgBar, 1, GUI_LIGHTGRAY);
@@ -354,7 +359,7 @@ reconect:
 										UART_PrintStr("\r\n");
 
 										GUI_SetFont(&GUI_Font10S_ASCII);
-										GUI_ClearRect(0, 38, 360, 52);
+										GUI_ClearRect(0, 30, 320, 60);
 										GUI_DispStringHCenterAt(RadioInf.Title,160, 45);
 									}else{
 										/* Niestandarowy format zapisu zarmi danych ? */
