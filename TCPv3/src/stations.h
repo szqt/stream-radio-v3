@@ -63,4 +63,7 @@
 
 	/* Eska Rock 128kbps port 8000 */
 	const char string11[] = "GET /pl/eskarock.mp3 HTTP/1.0\r\nHost: wroclaw.radio.pionier.net.pl\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
+
+	/* Radio Plus 192kbps port 5000 */
+	const char string12[] = "GET / HTTP/1.0\r\nHost: stream.pulsradio.com\r\nUser-Agent: WinampMPEG/5.62, Ultravox/2.1\r\nUltravox-transport-type: TCP\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n";
 #endif /* STATIONS_H_ */

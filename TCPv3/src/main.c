@@ -197,6 +197,8 @@ void vDHCP_TimerCallback(xTimerHandle pxTimer){
 
 
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName ){
+	printf("Stack overflow\n");
+	printf("Task: %s", pcTaskName);
 	while(1);
 }
 

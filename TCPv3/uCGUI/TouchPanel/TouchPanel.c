@@ -108,7 +108,7 @@ static void ADS7843_SPI_Init(void)
 void TP_Init(void) 
 { 
   LPC_GPIO0->FIODIR |=  (1<<6);   /* P0.6 CS is output */
-  LPC_GPIO2->FIODIR |=  (0<<13);  /* P2.13 TP_INT is input */
+  LPC_GPIO2->FIODIR &=  ~(1<<13);  /* P2.13 TP_INT is input */
   TP_CS(1); 
   ADS7843_SPI_Init(); 
 } 

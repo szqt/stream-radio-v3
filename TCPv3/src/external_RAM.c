@@ -33,7 +33,7 @@ void SPI1_Config(void){
 
 	dummy = dummy;						/* avoid warning */
 
-    LPC_SC->PCONP |= (1 << 10);			/* Enable power to SSPI0 block */
+    LPC_SC->PCONP |= (1 << 10);			/* Enable power to SSPI1 block */
 
 	/* P0.6 SSEL, P0.7 SCK, P0.8 MISO, P0.9 MOSI are SSP pins. */
 	LPC_PINCON->PINSEL0 &= ~( (2UL<<14) | (2UL<<16) | (2UL<<18) );		/* P0.15  cleared */

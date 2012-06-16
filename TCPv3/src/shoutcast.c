@@ -61,7 +61,7 @@ unsigned char IPradio_init(void)
 void shoutcast(void *pdata) {
 	struct netconn *NetConn = NULL;
 	struct netbuf *inbuf;
-	struct ip_addr ipaddrserv;
+	struct ip_addr ipaddrserv, dnsip;
 	u16_t portserv;
 	err_t rc1, rc2, rc3, rc4;
 	u8_t cnt, buffering_progress;
@@ -73,7 +73,7 @@ void shoutcast(void *pdata) {
 	PROGBAR_Handle BuffProgBar;
 	enum state eState = MODE1;
 
-
+	const char aName[] = "stream.pulsradio.com";
 
 
 
@@ -92,6 +92,18 @@ void shoutcast(void *pdata) {
 	printf("i - SKY.FM FM MP3 96kbps\r\n");
 	printf("j - 181.FM MP3 128kbps\r\n");
 	printf("k - Eska Rock MP3 128kbps\r\n");
+	printf("l - Radio PLUS 192kbps\r\n");
+
+	printf("DNS .....\r\n");
+	if((rc1 = netconn_gethostbyname(aName, &dnsip)) == ERR_OK){
+		printf("IP: ");
+		printf("%d.",0xff&(dnsip.addr));
+		printf("%d.",0xff&(dnsip.addr>>8));
+		printf("%d.",0xff&(dnsip.addr>>16));
+		printf("%d\r\n",0xff&(dnsip.addr>>24));
+	}else{
+		PrintERR(rc1);
+	}
 	cnt = 200;
 	while(!(LPC_UART2->LSR & 0x01)){			//czeka na znak
 		vTaskDelay(100/portTICK_RATE_MS);
@@ -149,18 +161,16 @@ void shoutcast(void *pdata) {
 		IP4_ADDR(&ipaddrserv, 156, 17, 254, 15);
 		portserv = 8000;
 		break;
+	case 'l':
+		IP4_ADDR(&ipaddrserv, 88, 191, 126, 127);
+		portserv = 5000;
+		break;
 	default:
 		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
 		portserv = 9000;
 		break;
 	}
 
-//	vSemaphoreCreateBinary(xVS_stopped);
-//	if(xVS_stopped != NULL){
-//		xSemaphoreGive(xVS_stopped);
-//	}else{
-//		// The semaphore was not created
-//	}
 
 	vSemaphoreCreateBinary(xDMAch0_Semaphore);
 	if(xDMAch0_Semaphore != NULL){
@@ -343,9 +353,9 @@ reconect:
 					case MODE1:
 						MDLpos = CpBytes-(DataCounter-RadioInf.MetaInt);				/* Pozycja MetaDataLength */
 						MetaDataLen = 16*mybuf[CpBytes-(DataCounter-RadioInf.MetaInt)];	/* Długosć MetaDanych */
-						if (MetaDataLen > 0){							/* czy ramka nie jest pusta? */
-							if((CpBytes - MDLpos - 1) >= MetaDataLen){	/* czy cała ramka została odebrana? */
-								ptr = strstr((mybuf+MDLpos + 1), "'");		/* 27 = ascii "'" */
+						if (MetaDataLen > 0){											/* czy ramka nie jest pusta? */
+							if((CpBytes - MDLpos - 1) >= MetaDataLen){					/* czy cała ramka została odebrana? */
+								ptr = strstr((mybuf+MDLpos + 1), "'");					/* 27 = ascii "'" */
 								if(ptr != NULL){
 									ptr_tmp = strstr(ptr+1, "';");				/* koniec pola StreamTitle */
 									if(ptr_tmp != NULL){
@@ -385,7 +395,7 @@ reconect:
 											RadioInf.Title[cnt] = *ptr;
 											cnt++;
 										}
-										RadioInf.Title[cnt] = '\0';				/* NULL na końcu tytułu */
+										RadioInf.Title[cnt] = '\0';		/* NULL na końcu tytułu */
 										UART_PrintStr("\r\n");
 										GUI_SetFont(&GUI_Font10S_ASCII);
 										GUI_ClearRect(0, 30, 320, 60);
@@ -401,44 +411,44 @@ reconect:
 										eState = MODE2;					/* Przyjdzie jeszcze reszta tytułu */
 									}
 
-									while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
+									while(RAM_buffree() < MDLpos){		/* Sprawdź czy jest miejsce w buforze vs */
 										vTaskDelay(5/portTICK_RATE_MS);
 									}
-									RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+									RAM_bufputs(mybuf, MDLpos);			/* Dane przed meta danymi */
 
 									DataCounter = RadioInf.MetaInt;
 
 									break;
 								}else{									/* Niema nawet początku tytułu */
 
-									while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
+									while(RAM_buffree() < MDLpos){		/* Sprawdź czy jest miejsce w buforze vs */
 										vTaskDelay(5/portTICK_RATE_MS);
 									}
-									RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+									RAM_bufputs(mybuf, MDLpos);			/* Dane przed meta danymi */
 
 									DataCounter = RadioInf.MetaInt;
-									eState = MODE4;
+									eState = MODE4;						/* Tersć tytułu jeszcze nie pszyszła - zakładamy że w kolejnym pakiecie będzie cały tytuł*/
 									break;
 								}
 							}
 						}
 						DataCounter=DataCounter-RadioInf.MetaInt-MetaDataLen-1;			/* Ilosć danych audio przed meta-danymi */
 
-						while(RAM_buffree() < MDLpos){			/* Sprawdź czy jest miejsce w buforze vs */
+						while(RAM_buffree() < MDLpos){		/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs(mybuf, MDLpos);		/* Dane przed meta danymi */
+						RAM_bufputs(mybuf, MDLpos);			/* Dane przed meta danymi */
 
-						while(RAM_buffree() < (CpBytes - MDLpos - MetaDataLen - 1)){		/* Sprawdź czy jest miejsce w buforze vs */
+						while(RAM_buffree() < (CpBytes - MDLpos - MetaDataLen - 1)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
 						RAM_bufputs(mybuf+MDLpos+MetaDataLen+1, (CpBytes - MDLpos - MetaDataLen - 1));		/* Dane po meta danych */
 						break;
 
 					case MODE2:
-						ptr_tmp = strstr(mybuf, "';");			/* Koniec pola StreamTitle */
+						ptr_tmp = strstr(mybuf, "';");		/* Koniec pola StreamTitle */
 						if(ptr_tmp != NULL){
-							ptr_tmp = strstr(mybuf, ";");		/* Może jest tylko srednik */
+							ptr_tmp = strstr(mybuf, ";");	/* Może jest tylko srednik */
 						}
 						if(ptr_tmp != NULL){
 							ptr = mybuf;
@@ -448,7 +458,7 @@ reconect:
 								ptr++;
 								cnt++;
 							}
-							RadioInf.Title[cnt] = '\0';				/* NULL na końcu tytułu */
+							RadioInf.Title[cnt] = '\0';		/* NULL na końcu tytułu */
 							UART_PrintStr("\r\n");
 
 							GUI_SetFont(&GUI_Font10S_ASCII);
@@ -459,19 +469,19 @@ reconect:
 							printf("MODE2 - no steram title end\r\n");
 						}
 
-						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){			/* Sprawdź czy jest miejsce w buforze vs */
+						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));		/* Dane po metadanych */
+						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
 
 						DataCounter = CpBytes - LeftMetaDataFrame;
 						eState = MODE1;
 						break;
 					case MODE3:
-						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){			/* Sprawdź czy jest miejsce w buforze vs */
+						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));		/* Dane po metadanych */
+						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
 
 						DataCounter = CpBytes - LeftMetaDataFrame;
 						eState = MODE1;
@@ -479,7 +489,7 @@ reconect:
 					case MODE4:
 						ptr = strstr((mybuf+MDLpos + 1), "'");		/* 27 = ascii "'" */
 						if(ptr != NULL){
-							ptr_tmp = strstr(ptr+1, "';");				/* koniec pola StreamTitle */
+							ptr_tmp = strstr(ptr+1, "';");			/* koniec pola StreamTitle */
 							if(ptr_tmp != NULL){
 								cnt = 0;
 								while(++ptr != ptr_tmp && cnt < TITLE_MAX_LEN-1){
@@ -487,7 +497,7 @@ reconect:
 									RadioInf.Title[cnt] = *ptr;
 									cnt++;
 								}
-								RadioInf.Title[cnt] = '\0';				/* NULL na końcu tytułu */
+								RadioInf.Title[cnt] = '\0';			/* NULL na końcu tytułu */
 								UART_PrintStr("\r\n");
 
 								GUI_SetFont(&GUI_Font10S_ASCII);
@@ -500,10 +510,10 @@ reconect:
 							/* Niestandarowy format zapisu zarmi danych ? */
 						}
 
-						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){			/* Sprawdź czy jest miejsce w buforze vs */
+						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));		/* Dane po metadanych */
+						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
 
 						DataCounter = CpBytes - LeftMetaDataFrame;
 						eState = MODE1;
@@ -529,7 +539,7 @@ reconect:
 					PROGBAR_SetValue(BuffProgBar, buffering_progress);
 					WM_Paint(BuffProgBar);
 					if(RAM_buflen()>BUFF_TRESH && flaga == STOP){	/* Bufor jest pełny */
-						vTaskResume(xVsTskHandle);				/* Uruchom zadanie dekodera */
+						vTaskResume(xVsTskHandle);					/* Uruchom zadanie dekodera */
 						flaga = PLAY;								/* Ustaw flagę uruchomienia zadania dekodera */
 						/*Usuń pasek postępu */
 						PROGBAR_Delete(BuffProgBar);
@@ -613,5 +623,7 @@ void PrintERR(err_t rc){
 
 	}
 }
+
+
 
 #endif /* LWIP_NETCONN*/
