@@ -8,7 +8,7 @@
 #ifndef SHOUTCAST_H_
 #define SHOUTCAST_H_
 
-#define sizeScast				400		//wykorzystuje ok 130 można dać 200
+#define sizeScast				600		//wykorzystuje ok 130 można dać 200
 #define prioScast				4
 
 #define BUFF_TRESH				256*1024	// próg ładowania bufora
@@ -17,6 +17,12 @@
 
 #define STATION_NAME_MAX_LEN	100
 #define TITLE_MAX_LEN			100
+
+/* Request header parameters */
+#define USER_NAME					"WEBRADIO"
+#define REQUEST_HEADER_MAX_LEN		200
+#define HOST_NAME_MAX_LEN			100
+#define DIR_MAX_LEN					30
 
 struct{
 	int MetaInt;					/* interwał meta-danych stacji */
