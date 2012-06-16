@@ -47,7 +47,7 @@ void SPI1_Config(void){
 	LPC_SSP1->CR1  = (1<<1);						/* SSP0 enable, master          */
 
 	/* Set SPI Clock speed */
-	SPI1_SetSpeed (SPI_16MHz);						/* PCLK/6 */
+	SPI1_SetSpeed (SPI_33MHz);						/* PCLK/6 */
 
 	while( LPC_SSP1->SR & (1 << SSPSR_BSY));		/* wait for busy gone */
 

@@ -67,7 +67,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/LCD}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/Config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/GLCD}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/GUI_X}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI/TouchPanel}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/TCPv3/uCGUI}&quot;"/>

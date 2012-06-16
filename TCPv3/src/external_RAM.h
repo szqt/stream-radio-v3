@@ -44,6 +44,8 @@
 #define SPI_11MHz		9
 #define SPI_16MHz		6
 #define SPI_20MHz		5
+#define SPI_25MHz		4
+#define SPI_33MHz		3
 
 
 /*--- CS_RAM1 pin ---*/

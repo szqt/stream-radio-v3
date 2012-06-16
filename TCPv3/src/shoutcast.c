@@ -28,6 +28,9 @@
 #include "shoutcast.h"
 #include "stations.h"
 
+void disp_menu(char *request_header, char *host_name, uint16_t *port);
+void parsURL(char *URL, char *request_header, char *host_name, uint16_t *port);
+
 #if LWIP_NETCONN
 
 extern xTaskHandle xVsTskHandle;
@@ -61,115 +64,23 @@ unsigned char IPradio_init(void)
 void shoutcast(void *pdata) {
 	struct netconn *NetConn = NULL;
 	struct netbuf *inbuf;
-	struct ip_addr ipaddrserv, dnsip;
+	struct ip_addr ipaddrserv;
 	u16_t portserv;
 	err_t rc1, rc2, rc3, rc4;
 	u8_t cnt, buffering_progress;
 	u16_t CpBytes, MetaDataLen, BufLen, MDLpos, LeftMetaDataFrame;
 	char *ptr, *ptr_tmp;
+
+	char request_header[REQUEST_HEADER_MAX_LEN];
+	char host_name[HOST_NAME_MAX_LEN];
+
 	int HeaderLen, DataCounter=0;
-	char flaga = 0, dummy;
+	char flaga = 0;
 	uint32_t buffered_byte;
 	PROGBAR_Handle BuffProgBar;
 	enum state eState = MODE1;
 
-	const char aName[] = "stream.pulsradio.com";
 
-
-
-	while(LPC_UART2->LSR & 0x01){		//wyczysc Rx FIFO
-		dummy=LPC_UART2->RBR;
-	}
-	printf("Wybierz stacje radiowa\r\n");
-	printf("a - ZET AAC+ 32bps\r\n");
-	printf("b - EuropaFM AAC+ Romiania 32kbps\r\n");
-	printf("c - idobi Radio MP3 128kbps\r\n");
-	printf("d - RMF MAXXX AAC+ 48kbps\r\n");
-	printf("e - Alex Jones - Infowars.com MP3 32kbps\r\n");
-	printf("f - TechnoBase.FM MP3 128kbps\r\n");
-	printf("g - RMF AAC+ 48bps - test\r\n");
-	printf("h - RMF AAC+ 48bps\r\n");
-	printf("i - SKY.FM FM MP3 96kbps\r\n");
-	printf("j - 181.FM MP3 128kbps\r\n");
-	printf("k - Eska Rock MP3 128kbps\r\n");
-	printf("l - Radio PLUS 192kbps\r\n");
-
-	printf("DNS .....\r\n");
-	if((rc1 = netconn_gethostbyname(aName, &dnsip)) == ERR_OK){
-		printf("IP: ");
-		printf("%d.",0xff&(dnsip.addr));
-		printf("%d.",0xff&(dnsip.addr>>8));
-		printf("%d.",0xff&(dnsip.addr>>16));
-		printf("%d\r\n",0xff&(dnsip.addr>>24));
-	}else{
-		PrintERR(rc1);
-	}
-	cnt = 200;
-	while(!(LPC_UART2->LSR & 0x01)){			//czeka na znak
-		vTaskDelay(100/portTICK_RATE_MS);
-		cnt--;
-		if(cnt == 0)
-			break;							// timeout
-	}
-	if (cnt != 0){		// nie było timeoutu
-		dummy = LPC_UART2->RBR;
-	}else
-		dummy = 'h';
-
-	switch(dummy){
-	case 'a':
-		IP4_ADDR(&ipaddrserv, 89, 149, 227, 111);
-		portserv = 8050;
-		break;
-	case 'b':
-		IP4_ADDR(&ipaddrserv, 89, 238, 252, 146);
-		portserv = 7000;
-		break;
-	case 'c':
-		IP4_ADDR(&ipaddrserv, 50, 117, 115, 211);
-		portserv = 80;
-		break;
-	case 'd':
-		IP4_ADDR(&ipaddrserv, 217, 74, 72, 12);
-		portserv = 9002;
-		break;
-	case 'e':
-		IP4_ADDR(&ipaddrserv, 50, 7, 241, 126);
-		portserv = 80;
-		break;
-	case 'f':
-		IP4_ADDR(&ipaddrserv, 85, 17, 26, 74);
-		portserv = 80;
-		break;
-	case 'g':
-		IP4_ADDR(&ipaddrserv, 192, 168, 195, 87);	// rmf test
-		portserv = 9000;
-		break;
-	case 'h':
-		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
-		portserv = 9000;
-		break;
-	case 'i':
-		IP4_ADDR(&ipaddrserv, 207, 200, 96, 231); //
-		portserv = 80;
-		break;
-	case 'j':
-		IP4_ADDR(&ipaddrserv, 207, 200, 96, 134);
-		portserv = 80;
-		break;
-	case 'k':
-		IP4_ADDR(&ipaddrserv, 156, 17, 254, 15);
-		portserv = 8000;
-		break;
-	case 'l':
-		IP4_ADDR(&ipaddrserv, 88, 191, 126, 127);
-		portserv = 5000;
-		break;
-	default:
-		IP4_ADDR(&ipaddrserv, 217, 74, 72, 10); //port 9000
-		portserv = 9000;
-		break;
-	}
 
 
 	vSemaphoreCreateBinary(xDMAch0_Semaphore);
@@ -188,7 +99,25 @@ void shoutcast(void *pdata) {
 
 	if (xSemaphoreTake(xDhcpCmplSemaphore_1, portMAX_DELAY) == pdTRUE) {
 
+		disp_menu(request_header, host_name, &portserv);
+
+		printf("Host name: %s\r\n", host_name);
+		printf("Port number: %d\r\n", portserv);
+//		printf("Reguest: %s\r\n", request_header);
+
+		printf("DNS .....\r\n");
+		if((rc1 = netconn_gethostbyname(host_name, &ipaddrserv)) == ERR_OK){
+			printf("IP: ");
+			printf("%d.",0xff&(ipaddrserv.addr));
+			printf("%d.",0xff&(ipaddrserv.addr>>8));
+			printf("%d.",0xff&(ipaddrserv.addr>>16));
+			printf("%d\r\n",0xff&(ipaddrserv.addr>>24));
+		}else{
+			PrintERR(rc1);
+		}
+
 reconect:
+
 		NetConn = netconn_new(NETCONN_TCP);
 		netconn_set_recvtimeout(NetConn, 30000);
 
@@ -212,50 +141,7 @@ reconect:
 			netconn_delete(NetConn);
 			goto reconect;
 		}else{
-			printf("netcon connected\r\n");
-			LED_Off(0);
-
-			switch(dummy){
-			case 'a':
-				rc1 = netconn_write(NetConn, string1, sizeof(string1), NETCONN_NOCOPY);
-				break;
-			case 'b':
-				rc1 = netconn_write(NetConn, string2, sizeof(string2), NETCONN_NOCOPY);
-				break;
-			case 'c':
-				rc1 = netconn_write(NetConn, string3, sizeof(string3), NETCONN_NOCOPY);
-				break;
-			case 'd':
-				rc1 = netconn_write(NetConn, string4, sizeof(string4), NETCONN_NOCOPY);
-				break;
-			case 'e':
-				rc1 = netconn_write(NetConn, string5, sizeof(string5), NETCONN_NOCOPY);
-				break;
-			case 'f':
-				rc1 = netconn_write(NetConn, string6, sizeof(string6), NETCONN_NOCOPY);
-				break;
-			case 'g':		// rmf test
-				rc1 = netconn_write(NetConn, string8p1, sizeof(string8p1)-1, NETCONN_COPY);
-				rc1 = netconn_write(NetConn, string8p2, sizeof(string8p2)-1, NETCONN_COPY);
-				rc1 = netconn_write(NetConn, string8p3, sizeof(string8p3)-1, NETCONN_COPY);
-				break;
-			case 'h':
-				rc1 = netconn_write(NetConn, string8, sizeof(string8), NETCONN_NOCOPY);
-				break;
-			case 'i':
-				rc1 = netconn_write(NetConn, string9, sizeof(string9), NETCONN_NOCOPY);
-				break;
-			case 'j':
-				rc1 = netconn_write(NetConn, string10, sizeof(string10), NETCONN_NOCOPY);
-				break;
-			case 'k':
-				rc1 = netconn_write(NetConn, string11, sizeof(string11), NETCONN_NOCOPY);
-				break;
-			default:
-				rc1 = netconn_write(NetConn, string8, sizeof(string8), NETCONN_NOCOPY);
-				break;
-			}
-//			rc1 = netconn_write(NetConn, string, sizeof(string), NETCONN_NOCOPY);
+			rc1 = netconn_write(NetConn, request_header, strlen(request_header), NETCONN_COPY);
 			if(rc1 != ERR_OK){
 				printf("Ncon_write error: ");
 				PrintERR(rc1);
@@ -624,6 +510,136 @@ void PrintERR(err_t rc){
 	}
 }
 
+void disp_menu(char *request_header, char *host_name, uint16_t *port){
+
+	char pls[200];
+	char dummy;
+	uint8_t cnt;
+
+	while(LPC_UART2->LSR & 0x01){		//wyczysc Rx FIFO
+		dummy=LPC_UART2->RBR;
+	}
+	printf("Wybierz stacje radiowa\r\n");
+	printf("a - ZET AAC+ 32bps\r\n");
+	printf("b - EuropaFM AAC+ Romiania 32kbps\r\n");
+	printf("c - idobi Radio MP3 128kbps\r\n");
+	printf("d - RMF MAXXX AAC+ 48kbps\r\n");
+	printf("e - Alex Jones - Infowars.com MP3 32kbps\r\n");
+	printf("f - TechnoBase.FM MP3 128kbps\r\n");
+	printf("g - French Kiss FM MP3 128kbps\r\n");
+	printf("h - RMF AAC+ 48bps\r\n");
+	printf("i - SKY.FM FM MP3 96kbps\r\n");
+	printf("j - 181.FM MP3 128kbps\r\n");
+	printf("k - Eska Rock MP3 128kbps\r\n");
+	printf("l - Radio PLUS 192kbps\r\n");
+	printf("m - Wlasny URL\r\n");
+
+	cnt = 200;
+	while(!(LPC_UART2->LSR & 0x01)){			//czeka na znak
+		vTaskDelay(100/portTICK_RATE_MS);
+		cnt--;
+		if(cnt == 0)
+			break;							// timeout
+	}
+	if (cnt != 0){		// nie było timeoutu
+		dummy = LPC_UART2->RBR;
+	}else
+		dummy = 'h';
+
+	switch(dummy){
+	case 'a':
+		strcpy(pls, string1);
+		break;
+	case 'b':
+		strcpy(pls, string2);
+		break;
+	case 'c':
+		strcpy(pls, string3);
+		break;
+	case 'd':
+		strcpy(pls, string4);
+		break;
+	case 'e':
+		strcpy(pls, string5);
+		break;
+	case 'f':
+		strcpy(pls, string6);
+		break;
+	case 'g':
+		strcpy(pls, string7);
+		break;
+	case 'h':
+		strcpy(pls, string8);
+		break;
+	case 'i':
+		strcpy(pls, string9);
+		break;
+	case 'j':
+		strcpy(pls, string10);
+		break;
+	case 'k':
+		strcpy(pls, string11);
+		break;
+	case 'l':
+		strcpy(pls, string12);
+		break;
+	case 'm':
+		printf("Podaj URL stacji:\r\n");
+		scanf("%s", pls);
+		printf("Podany URL: %s\r\n", pls);
+		break;
+	default:
+		strcpy(pls, string8);
+		break;
+	}
+	parsURL(pls, request_header, host_name, port);
+}
+
+void parsURL(char *URL, char *request_header, char *host_name, uint16_t *port){
+	char *url_start, *url_end;
+	char directory[DIR_MAX_LEN];
+	uint8_t cnt;
+
+	/* find host name */
+	url_start = strstr(URL, "http");		// http://urladdr.com
+	url_start += 7;
+	url_end = strstr(url_start, ":");
+
+	cnt = 0;
+	do{
+		host_name[cnt] = *url_start;
+		cnt++;
+	}while((++url_start != url_end) && (cnt < HOST_NAME_MAX_LEN-1));
+	host_name[cnt] = '\0';
+
+	/* find directory path */
+	url_start = strstr(url_end, "/");
+	if(url_start == NULL){
+		directory[0] = '/';
+		directory[1] = 0;
+	}else{
+		cnt = 0;
+		do{
+			directory[cnt] = *url_start;
+			cnt++;
+		}while((++url_start != NULL) && (cnt < DIR_MAX_LEN-1));
+		directory[cnt] = '\0';
+	}
+
+	/* find port number */
+	url_end++;		// pointer to port number
+	*port = atoi(url_end);
+
+	/* create request header */
+	strcpy(request_header, "GET ");
+	strcat(request_header, directory);
+	strcat(request_header, " HTTP/1.0\r\nHost: ");
+	strcat(request_header, host_name);
+	strcat(request_header, "\r\n");
+	strcat(request_header, "User-Agent: ");
+	strcat(request_header, USER_NAME);
+	strcat(request_header, "\r\nAccept: */*\r\nIcy-MetaData:1\r\nConnection: close\r\n\r\n");
+}
 
 
 #endif /* LWIP_NETCONN*/
