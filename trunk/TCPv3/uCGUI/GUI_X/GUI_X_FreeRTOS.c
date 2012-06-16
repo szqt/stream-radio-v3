@@ -20,11 +20,16 @@ Purpose     : Config / System dependent externals for GUI
 #include "GUI.h"
 #include "GUI_X.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+
 /*********************************************************************
 *
 *       Global data
 */
-volatile int OS_TimeMS;
+volatile portTickType;
+xSemaphoreHandle xDispSem = NULL;
 
 /*********************************************************************
 *
@@ -38,12 +43,11 @@ volatile int OS_TimeMS;
 */
 
 int GUI_X_GetTime(void) {
-  return OS_TimeMS;
+  return ((int)xTaskGetTickCount());
 }
 
 void GUI_X_Delay(int ms) {
-  int tEnd = OS_TimeMS + ms;
-  while ((tEnd - OS_TimeMS) > 0);
+	vTaskDelay(ms/portTICK_RATE_MS);
 }
 
 /*********************************************************************
@@ -67,7 +71,51 @@ void GUI_X_Init(void) {}
 *  Called if WM is in idle state
 */
 
-void GUI_X_ExecIdle(void) {}
+void GUI_X_ExecIdle(void) {
+	vTaskDelay(50/portTICK_RATE_MS);
+}
+
+/*********************************************************************
+*
+*      Multitasking:
+*
+*                 GUI_X_InitOS()
+*                 GUI_X_GetTaskId()
+*                 GUI_X_Lock()
+*                 GUI_X_Unlock()
+*
+* Note:
+*   The following routines are required only if emWin is used in a
+*   true multi task environment, which means you have more than one
+*   thread using the emWin API.
+*   In this case the
+*                       #define GUI_OS 1
+*  needs to be in GUIConf.h
+*/
+
+void GUI_X_InitOS (void)
+{
+	vSemaphoreCreateBinary(xDispSem);
+	if(xDispSem != NULL){
+		xSemaphoreTake(xDispSem, 0);
+	}else{
+		// The semaphore was not created
+	}
+}
+
+void GUI_X_Lock(void)
+{
+	if(xSemaphoreTake(xDispSem, portMAX_DELAY) == pdTRUE){
+	}else{
+		//error
+	}
+}
+
+
+void GUI_X_Unlock(void)
+{
+	xSemaphoreGive(xDispSem);
+}
 
 /*********************************************************************
 *

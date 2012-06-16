@@ -8,7 +8,7 @@
 #ifndef SHOUTCAST_H_
 #define SHOUTCAST_H_
 
-#define sizeScast				600		//wykorzystuje ok 130 można dać 200
+#define sizeScast				400		//wykorzystuje ok 130 można dać 200
 #define prioScast				4
 
 #define BUFF_TRESH				256*1024	// próg ładowania bufora
