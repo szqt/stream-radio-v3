@@ -29,7 +29,7 @@
 #include "stations.h"
 
 void disp_menu(char *request_header, char *host_name, uint16_t *port);
-void parsURL(char *URL, char *request_header, char *host_name, uint16_t *port);
+void pars_URL(char *URL, char *request_header, char *host_name, uint16_t *port);
 
 #if LWIP_NETCONN
 
@@ -192,7 +192,7 @@ reconect:
 				if (ptr != NULL) {
 					HeaderLen = ptr - mybuf + 4;			/* Oblicz długosc danych nagłówkoych w odebranej porcji danych */
 					DataCounter = CpBytes - HeaderLen;		/* W pakiecie są pierwsze dane strumienia */
-					RAM_bufputs(mybuf, DataCounter);		/* Wrzuć te dane do bufora VS */
+					RAM_bufput(mybuf, DataCounter);		/* Wrzuć te dane do bufora VS */
 					break;
 				}
 			}
@@ -300,7 +300,7 @@ reconect:
 									while(RAM_buffree() < MDLpos){		/* Sprawdź czy jest miejsce w buforze vs */
 										vTaskDelay(5/portTICK_RATE_MS);
 									}
-									RAM_bufputs(mybuf, MDLpos);			/* Dane przed meta danymi */
+									RAM_bufput(mybuf, MDLpos);			/* Dane przed meta danymi */
 
 									DataCounter = RadioInf.MetaInt;
 
@@ -310,7 +310,7 @@ reconect:
 									while(RAM_buffree() < MDLpos){		/* Sprawdź czy jest miejsce w buforze vs */
 										vTaskDelay(5/portTICK_RATE_MS);
 									}
-									RAM_bufputs(mybuf, MDLpos);			/* Dane przed meta danymi */
+									RAM_bufput(mybuf, MDLpos);			/* Dane przed meta danymi */
 
 									DataCounter = RadioInf.MetaInt;
 									eState = MODE4;						/* Tersć tytułu jeszcze nie pszyszła - zakładamy że w kolejnym pakiecie będzie cały tytuł*/
@@ -323,12 +323,12 @@ reconect:
 						while(RAM_buffree() < MDLpos){		/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs(mybuf, MDLpos);			/* Dane przed meta danymi */
+						RAM_bufput(mybuf, MDLpos);			/* Dane przed meta danymi */
 
 						while(RAM_buffree() < (CpBytes - MDLpos - MetaDataLen - 1)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs(mybuf+MDLpos+MetaDataLen+1, (CpBytes - MDLpos - MetaDataLen - 1));		/* Dane po meta danych */
+						RAM_bufput(mybuf+MDLpos+MetaDataLen+1, (CpBytes - MDLpos - MetaDataLen - 1));		/* Dane po meta danych */
 						break;
 
 					case MODE2:
@@ -358,7 +358,7 @@ reconect:
 						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
+						RAM_bufput((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
 
 						DataCounter = CpBytes - LeftMetaDataFrame;
 						eState = MODE1;
@@ -367,7 +367,7 @@ reconect:
 						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
+						RAM_bufput((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
 
 						DataCounter = CpBytes - LeftMetaDataFrame;
 						eState = MODE1;
@@ -399,7 +399,7 @@ reconect:
 						while(RAM_buffree() < (CpBytes - LeftMetaDataFrame)){	/* Sprawdź czy jest miejsce w buforze vs */
 							vTaskDelay(5/portTICK_RATE_MS);
 						}
-						RAM_bufputs((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
+						RAM_bufput((mybuf + LeftMetaDataFrame), (CpBytes - LeftMetaDataFrame));	/* Dane po metadanych */
 
 						DataCounter = CpBytes - LeftMetaDataFrame;
 						eState = MODE1;
@@ -413,7 +413,7 @@ reconect:
 					while(RAM_buffree() < CpBytes){			/* Sprawdź czy jest miejsce w buforze vs */
 						vTaskDelay(5/portTICK_RATE_MS);
 					}
-					RAM_bufputs(mybuf, CpBytes);
+					RAM_bufput(mybuf, CpBytes);
 				}
 
 				if(flaga == STOP){
@@ -592,10 +592,10 @@ void disp_menu(char *request_header, char *host_name, uint16_t *port){
 		strcpy(pls, string8);
 		break;
 	}
-	parsURL(pls, request_header, host_name, port);
+	pars_URL(pls, request_header, host_name, port);
 }
 
-void parsURL(char *URL, char *request_header, char *host_name, uint16_t *port){
+void pars_URL(char *URL, char *request_header, char *host_name, uint16_t *port){
 	char *url_start, *url_end;
 	char directory[DIR_MAX_LEN];
 	uint8_t cnt;

@@ -4,16 +4,23 @@
  *  Created on: 02-06-2012
  *      Author: ja
  */
+#include <stdio.h>
+#include <string.h>
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
 #include "timers.h"
 
+#include "lwip/sys.h"
+#include "lwip/stats.h"
+
 #include "Tasks.h"
 
 #include "vs1053.h"
 #include "gpio.h"
+#include "uart.h"
 
 
 
@@ -21,6 +28,13 @@
 /*--- GLOBALS ---*/
 xSemaphoreHandle xDMAch1_Semaphore = NULL;
 extern xSemaphoreHandle xSPI0_Mutex;
+
+/* Uchwyty do zadan */
+extern xTaskHandle xVsTskHandle;
+extern xTaskHandle xHeartbeatTskHandle;
+extern xTaskHandle xShoutcastTaskHandle;
+extern xTaskHandle xETHTsk;
+extern sys_thread_t xLWIPTskHandler;
 
 void vVsTask(void * pvParameters) {
 
@@ -51,12 +65,12 @@ void vVsTask(void * pvParameters) {
 //	}
 //}
 
-void vIamLiveTask (void * pvParameters){
+void vHeartbeatTask (void * pvParameters){
 //	static uint8_t last_vol = 0;
 //	uint8_t new_vol;
 //	uint8_t licznik=0;
-//	char buf[120], buf2[300];
-//	unsigned portBASE_TYPE Shoutcast, Vs, IamLive, TCP, ETHinp;
+	char buf[120];//, buf2[300];
+	unsigned portBASE_TYPE Shoutcast, Vs, Heartbeat, lwIP, ETH;
 	while(1){
 
 //		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
@@ -76,42 +90,29 @@ void vIamLiveTask (void * pvParameters){
 //			licznik = 0;
 //		}
 
-//		vTaskGetRunTimeStats((signed char*)buf);
-//		UART_PrintBuf (buf, strlen(buf));
+		printf("\r\n--------Run time stats-------\r\n");
+		vTaskGetRunTimeStats((signed char*)buf);
+		UART_PrintBuf (buf, strlen(buf));
 //		vTaskList((signed char*)buf2);
 //		UART_PrintBuf (buf2, strlen(buf2));
+		printf("\r\n-----------------------------\r\n");
 
 //
-//		IamLive = uxTaskGetStackHighWaterMark(NULL);
-//		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
-//		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
-//		TCP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
-//		ETHinp = uxTaskGetStackHighWaterMark(xETHTsk);
-//		UART_PrintStr("ILive: ");
-//		UART_PrintNum(IamLive);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("shout: ");
-//		UART_PrintNum(Shoutcast);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("VS: ");
-//		UART_PrintNum(Vs);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("LWIP: ");
-//		UART_PrintNum(TCP);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("LWIP: ");
-//		UART_PrintNum(TCP);
-//		UART_PrintStr("\r\n");
-//
-//		UART_PrintStr("ETH: ");
-//		UART_PrintNum(ETHinp);
-//		UART_PrintStr("\r\n");
+		Heartbeat = uxTaskGetStackHighWaterMark(NULL);
+		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
+		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
+		lwIP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
+		ETH = uxTaskGetStackHighWaterMark(xETHTsk);
+
+		printf("\r\n--------Tasks stack watermark-------\r\n");
+		printf("Hearbeat:   %d\r\n",Heartbeat);
+		printf("Shoutcast:  %d\r\n",Shoutcast);
+		printf("VS:         %d\r\n",Vs);
+		printf("lwIP:       %d\r\n",lwIP);
+		printf("ETH:        %d\r\n",ETH);
+		printf("\r\n------------------------------------\r\n");
 
 		LED_Toggle(2);
-		vTaskDelay(50/portTICK_RATE_MS);
+		vTaskDelay(5000/portTICK_RATE_MS);
 	}
 }

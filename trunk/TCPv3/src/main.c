@@ -51,7 +51,7 @@ void eth_lwip_init(void);
 
 /* Uchwyty do zadan */
 xTaskHandle xVsTskHandle;
-xTaskHandle xIamLiveHandle;
+xTaskHandle xHeartbeatTskHandle;
 extern xTaskHandle xShoutcastTaskHandle;
 extern xTaskHandle xETHTsk;
 extern sys_thread_t xLWIPTskHandler;
@@ -121,7 +121,7 @@ int main()
 	}
 //	HTTP_init();
 	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
-	xTaskCreate( vIamLiveTask, ( signed portCHAR * ) "IaLTsk", 400, NULL, 3, &xIamLiveHandle );
+	xTaskCreate( vHeartbeatTask, ( signed portCHAR * ) "IaLTsk", 400, NULL, 3, &xHeartbeatTskHandle );
 
 	vTaskSuspend(xVsTskHandle);
 
