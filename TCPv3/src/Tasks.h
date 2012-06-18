@@ -8,7 +8,7 @@
 #ifndef TASKS_H_
 #define TASKS_H_
 
-void 			vIamLiveTask (void * pvParameters);
+void 			vHeartbeatTask (void * pvParameters);
 void 			vVsTask(void * pvParameters);
 void 			vDHCP_TimerCallback(xTimerHandle pxTimer);
 

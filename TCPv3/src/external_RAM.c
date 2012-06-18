@@ -47,7 +47,7 @@ void SPI1_Config(void){
 	LPC_SSP1->CR1  = (1<<1);						/* SSP0 enable, master          */
 
 	/* Set SPI Clock speed */
-	SPI1_SetSpeed (SPI_33MHz);						/* PCLK/6 */
+	SPI1_SetSpeed (SPI_16MHz);						/* PCLK/6 */
 
 	while( LPC_SSP1->SR & (1 << SSPSR_BSY));		/* wait for busy gone */
 
@@ -198,7 +198,7 @@ void RAM_test(void) {
  * @param s data to buffer
  * @patam len length of data
  */
-void RAM_bufputs(char *data_in, uint16_t len_in) {
+void RAM_bufput(char *data_in, uint16_t len_in) {
 	char *data;
 	uint32_t head;
 	uint16_t written_data, len;
@@ -372,7 +372,7 @@ void RAM_bufputs(char *data_in, uint16_t len_in) {
  * Gets samples to audio buffer
  *
  * @param buf buffer
- * @patam len length of data to get (max value = 32*1024)
+ * @patam len length of data to get (max value = 256*1024)
  */
 void RAM_bufget(uint8_t *buf, uint16_t len){
 	uint32_t tail;
@@ -515,7 +515,7 @@ uint32_t RAM_buflen(void) {
  *
  * @return free bytes in RAM buffer
  */
-uint32_t RAM_buffree(void) {
+uint32_t RAM_buffree(void){
 
 	return (RAM_BUFSIZE - RAM_buflen() - 1);
 

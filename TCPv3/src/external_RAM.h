@@ -69,7 +69,7 @@ void 			SPI1_FIFO_write(uint8_t byte_s);
 void 			SPI1_SetSpeed(uint8_t speed);
 void 			RAM_Init(void);
 void 			RAM_test(void);
-void 			RAM_bufputs(char *data_in, uint16_t len_in);
+void 			RAM_bufput(char *data_in, uint16_t len_in);
 void 			RAM_bufget(uint8_t *buf, uint16_t len);
 uint32_t 		RAM_buflen(void);
 uint32_t 		RAM_buffree(void);
