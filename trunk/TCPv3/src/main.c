@@ -92,7 +92,6 @@ int main()
 
 
 	LED_Config();
-	BUTTON_Config();
 	UART2_Config(115200);
 	ADC_Config();
 	VS_Init();
@@ -121,7 +120,7 @@ int main()
 	}
 //	HTTP_init();
 	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
-	xTaskCreate( vHeartbeatTask, ( signed portCHAR * ) "IaLTsk", 400, NULL, 3, &xHeartbeatTskHandle );
+	xTaskCreate( vHeartbeatTask, ( signed portCHAR * ) "HbeatTsk", 400, NULL, 3, &xHeartbeatTskHandle );
 
 	vTaskSuspend(xVsTskHandle);
 
@@ -197,11 +196,12 @@ void vDHCP_TimerCallback(xTimerHandle pxTimer){
 
 
 void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed portCHAR *pcTaskName ){
-	printf("Stack overflow\n");
+	printf("Stack overflow\r\n");
 	printf("Task: %s", pcTaskName);
 	while(1);
 }
 
 void vApplicationMallocFailedHook(void){
+	printf("Application malloc failed\r\n");
 	while(1);
 }

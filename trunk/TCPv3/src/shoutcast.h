@@ -8,10 +8,12 @@
 #ifndef SHOUTCAST_H_
 #define SHOUTCAST_H_
 
-#define sizeScast				600		//wykorzystuje ok 130 można dać 200
+#define sizeScast				500		//wykorzystuje ok 130 można dać 200
 #define prioScast				4
 
-#define BUFF_TRESH				256*1024	// próg ładowania bufora
+#define BUFF_TRESH_3			500*1024	// próg ładowania bufora
+#define BUFF_TRESH_2			256*1024
+#define BUFF_TRESH_1			128*1024
 #define PLAY					1
 #define STOP					0
 
@@ -24,14 +26,16 @@
 #define HOST_NAME_MAX_LEN			100
 #define DIR_MAX_LEN					30
 
+enum state {MODE1, MODE2, MODE3, MODE4};
+enum BOLEN {TRUE, FALSE};
 struct{
-	int MetaInt;					/* interwał meta-danych stacji */
+	enum BOLEN Metadata;				/* Obecnosc w strumieniu metadanych: TRUE FALSE */
+	int MetaInt;						/* interwał meta-danych stacji */
+	unsigned short int Bitrate;			/* Bitrate strumienia */
 	char Name[STATION_NAME_MAX_LEN];	/* pole nazwy stacji */
 	char Title[TITLE_MAX_LEN];
 
 }RadioInf;
-
-enum state {MODE1, MODE2, MODE3, MODE4};
 
 void 		shoutcast(void *pdata);
 void 		PrintERR(err_t rc);

@@ -51,6 +51,7 @@ void BUTTON_Config(void) {
 
 	LPC_GPIO2->FIODIR &= ~(1<<10) ;		// P2.10 jako wejcie
 	LPC_GPIOINT->IO2IntEnF |= (1<<10);	// źródło przerwania
+	LPC_GPIOINT->IO2IntClr |= (1<<10);	//kasuje flagę prerwania
 
 	NVIC_EnableIRQ(EINT3_IRQn);
 }

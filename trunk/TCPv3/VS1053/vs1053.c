@@ -1293,12 +1293,6 @@ void VS_Init(void){
 //	}
 }
 
-void EINT3_IRQHandler(void){
-
-	LPC_GPIOINT->IO2IntClr |= (1<<10);	//kasuje flagę prerwania
-
-}
-
 /**
  * Try send 32 bytes (32 samples) to VS1053B
  */

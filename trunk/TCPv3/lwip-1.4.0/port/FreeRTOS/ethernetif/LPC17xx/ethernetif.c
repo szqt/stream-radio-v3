@@ -91,7 +91,7 @@ low_level_init(struct netif *netif)
     LWIP_DEBUGF(NETIF_DEBUG,("Semaphore for ETH recive created failed !\n\r"));
   };
 
-  result = xTaskCreate( ethernetif_input, ( signed portCHAR * ) "Eht_inp", sizeEthif, (void *)netif, prioEthif, &xETHTsk );
+  result = xTaskCreate( ethernetif_input, ( signed portCHAR * ) "EhtTsk", sizeEthif, (void *)netif, prioEthif, &xETHTsk );
   
   if(result != pdPASS) {
     LWIP_DEBUGF(NETIF_DEBUG,("Task for ETH recive created failed !\n\r "));

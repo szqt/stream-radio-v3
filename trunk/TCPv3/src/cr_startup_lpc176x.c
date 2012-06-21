@@ -422,7 +422,7 @@ void DebugMon_Handler(void)
 __attribute__ ((section(".after_vectors")))
 void IntDefaultHandler(void)
 {
-	UART_PrintStr("DEFAULT HANDLER !!!!!\r\n");
+	printf("DEFAULT HANDLER !!!!!\r\n");
     while(1)
     {
     }
