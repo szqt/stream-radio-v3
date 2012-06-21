@@ -42,5 +42,5 @@ const char string10[] = "http://scfire-ntc-aa05.stream.aol.com:80/stream/1022";
 const char string11[] = "http://wroclaw.radio.pionier.net.pl:8000/pl/eskarock.mp3";
 
 /* Radio Plus 192kbps port 5000 */
-const char string12[] = "stream.pulsradio.com:5000";
+const char string12[] = "http://stream.pulsradio.com:5000";
 #endif /* STATIONS_H_ */

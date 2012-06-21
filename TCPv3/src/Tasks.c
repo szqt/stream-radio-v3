@@ -27,6 +27,7 @@
 
 /*--- GLOBALS ---*/
 xSemaphoreHandle xDMAch1_Semaphore = NULL;
+xSemaphoreHandle xButton_pushed_Semaphore = NULL;
 extern xSemaphoreHandle xSPI0_Mutex;
 
 /* Uchwyty do zadan */
@@ -71,6 +72,16 @@ void vHeartbeatTask (void * pvParameters){
 //	uint8_t licznik=0;
 	char buf[120];//, buf2[300];
 	unsigned portBASE_TYPE Shoutcast, Vs, Heartbeat, lwIP, ETH;
+
+	vSemaphoreCreateBinary(xButton_pushed_Semaphore);
+	if(xDMAch1_Semaphore != NULL){
+		xSemaphoreTake(xButton_pushed_Semaphore, 0);
+	}else{
+		// The semaphore was not created
+	}
+
+	BUTTON_Config();	//INT0 Button as source of interrupt
+
 	while(1){
 
 //		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
@@ -89,30 +100,46 @@ void vHeartbeatTask (void * pvParameters){
 //			UART_PrintStr("\r\n");
 //			licznik = 0;
 //		}
+		if (pdTRUE == xSemaphoreTake(xButton_pushed_Semaphore, 0)) {
+			printf("\r\n--------Run time stats-------\r\n");
+			vTaskGetRunTimeStats((signed char*) buf);
+			UART_PrintBuf(buf, strlen(buf));
+			//		vTaskList((signed char*)buf2);
+			//		UART_PrintBuf (buf2, strlen(buf2));
+			printf("\r\n-----------------------------\r\n");
 
-		printf("\r\n--------Run time stats-------\r\n");
-		vTaskGetRunTimeStats((signed char*)buf);
-		UART_PrintBuf (buf, strlen(buf));
-//		vTaskList((signed char*)buf2);
-//		UART_PrintBuf (buf2, strlen(buf2));
-		printf("\r\n-----------------------------\r\n");
+			//
+			Heartbeat = uxTaskGetStackHighWaterMark(NULL);
+			Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
+			Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
+			lwIP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
+			ETH = uxTaskGetStackHighWaterMark(xETHTsk);
 
-//
-		Heartbeat = uxTaskGetStackHighWaterMark(NULL);
-		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
-		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
-		lwIP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
-		ETH = uxTaskGetStackHighWaterMark(xETHTsk);
-
-		printf("\r\n--------Tasks stack watermark-------\r\n");
-		printf("Hearbeat:   %d\r\n",Heartbeat);
-		printf("Shoutcast:  %d\r\n",Shoutcast);
-		printf("VS:         %d\r\n",Vs);
-		printf("lwIP:       %d\r\n",lwIP);
-		printf("ETH:        %d\r\n",ETH);
-		printf("\r\n------------------------------------\r\n");
+			printf("\r\n--------Tasks stack watermark-------\r\n");
+			printf("Hearbeat:   %d\r\n", Heartbeat);
+			printf("Shoutcast:  %d\r\n", Shoutcast);
+			printf("VS:         %d\r\n", Vs);
+			printf("lwIP:       %d\r\n", lwIP);
+			printf("ETH:        %d\r\n", ETH);
+			printf("\r\n------------------------------------\r\n");
+		}
 
 		LED_Toggle(2);
-		vTaskDelay(5000/portTICK_RATE_MS);
+		vTaskDelay(500/portTICK_RATE_MS);
+	}
+}
+
+/*
+ * Button INT0 interrupt handler
+ */
+void EINT3_IRQHandler(void){
+
+	static signed portBASE_TYPE xHigherPriorityTaskWoken;
+
+	LPC_GPIOINT->IO2IntClr |= (1<<10);	//kasuje flagę prerwania
+	xSemaphoreGiveFromISR(xButton_pushed_Semaphore, &xHigherPriorityTaskWoken);
+
+	if (xHigherPriorityTaskWoken == pdTRUE){
+		portYIELD();
 	}
 }
