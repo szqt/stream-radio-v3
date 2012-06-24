@@ -21,7 +21,6 @@
 #include "external_RAM.h"
 #include "vs1053.h"
 
-//#include "GLCD.h"
 #include "GUI.h"
 #include "PROGBAR.h"
 
@@ -35,7 +34,6 @@ void get_metadata(u16_t CpBytes, int *DataCounter);
 #if LWIP_NETCONN
 
 extern xTaskHandle xVsTskHandle;
-extern xSemaphoreHandle xDhcpCmplSemaphore_1;
 extern xSemaphoreHandle xSPI1_Mutex;
 xSemaphoreHandle xDMAch0_Semaphore = NULL;
 xSemaphoreHandle xDMAch2_Semaphore = NULL;
@@ -97,231 +95,236 @@ void shoutcast(void *pdata) {
 		// The semaphore was not created
 	}
 
-	if (xSemaphoreTake(xDhcpCmplSemaphore_1, portMAX_DELAY) == pdTRUE) {
 
 		disp_menu(request_header, host_name, &portserv);
 
-		printf("Host name: %s\r\n", host_name);
-		printf("Port number: %d\r\n", portserv);
-//		printf("Reguest: %s\r\n", request_header);
+	printf("Host name: %s\r\n", host_name);
+	printf("Port number: %d\r\n", portserv);
+	//		printf("Reguest: %s\r\n", request_header);
 
-		printf("DNS .....\r\n");
-		if((rc1 = netconn_gethostbyname(host_name, &ipaddrserv)) == ERR_OK){
-			printf("IP: ");
-			printf("%d.",0xff&(ipaddrserv.addr));
-			printf("%d.",0xff&(ipaddrserv.addr>>8));
-			printf("%d.",0xff&(ipaddrserv.addr>>16));
-			printf("%d\r\n",0xff&(ipaddrserv.addr>>24));
-		}else{
+	printf("DNS .....\r\n");
+	if ((rc1 = netconn_gethostbyname(host_name, &ipaddrserv)) == ERR_OK) {
+		printf("IP: ");
+		printf("%d.", 0xff & (ipaddrserv.addr));
+		printf("%d.", 0xff & (ipaddrserv.addr >> 8));
+		printf("%d.", 0xff & (ipaddrserv.addr >> 16));
+		printf("%d\r\n", 0xff & (ipaddrserv.addr >> 24));
+	} else {
+		PrintERR(rc1);
+	}
+
+	reconnect:
+
+	NetConn = netconn_new(NETCONN_TCP);
+	netconn_set_recvtimeout(NetConn, 30000);
+
+	if (NetConn == NULL) {
+		/*No memory for new connection? */
+		printf("No mem for new con\r\n");
+	}
+	while ((rc1 = netconn_bind(NetConn, NULL, 3250)) != ERR_OK) { /* Adres IP i port local host'a */
+		printf("Ncon_bind error: ");
+		PrintERR(rc1);
+		vTaskDelay(10000 / portTICK_RATE_MS); // wait 10 sec
+	}
+	printf("netcon binded\r\n");
+	connect: rc2 = netconn_connect(NetConn, &ipaddrserv, portserv); /* Adres IP i port serwera */
+
+	if (rc2 != ERR_OK) {
+		printf("Ncon_connect error: ");
+		PrintERR(rc2);
+		LED_On(0);
+		netconn_delete(NetConn);
+		goto reconnect;
+	} else {
+		rc1 = netconn_write(NetConn, request_header, strlen(request_header),
+				NETCONN_COPY);
+		if (rc1 != ERR_OK) {
+			printf("Ncon_write error: ");
 			PrintERR(rc1);
 		}
+		vTaskDelay(4000 / portTICK_RATE_MS);
 
-reconnect:
+		while ((netconn_recv(NetConn, &inbuf)) == ERR_OK) {
+			BufLen = netbuf_len(inbuf);
+			CpBytes = netbuf_copy(inbuf, mybuf, BufLen);
+			netbuf_delete(inbuf);
 
-		NetConn = netconn_new(NETCONN_TCP);
-		netconn_set_recvtimeout(NetConn, 30000);
+			/* Znajdź kod statusu żądania HTTP */
+			ptr = strstr(mybuf, "ICY");
+			ptr_tmp = strstr(mybuf, "\r\n");
+			if ((ptr != NULL) && (ptr_tmp != NULL)) {
+				do {
+					UART_PrintChar(*ptr);
+				} while (ptr++ != ptr_tmp);
+				UART_PrintStr("\r\n");
+			}
+			/* Znajdź wartosć interwału meta-danych */
+			ptr = strstr(mybuf, "icy-metaint");
+			if (ptr != NULL) {
+				ptr = ptr + 12; /* przestaw wskaźnik na pierwszy bajt MetaInt */
+				RadioInf.MetaInt = atoi(ptr);
+				RadioInf.Metadata = TRUE;
+			} else {
+				RadioInf.MetaInt = 0;
+				RadioInf.Metadata = FALSE;
+			}
+			/* Znajdź nazwę stacji */
+			ptr = strstr(mybuf, "icy-name");
+			if (ptr != NULL) {
+				ptr = ptr + 9; /* przestaw wkaźnik na pierwszy bajt nazwy */
+				ptr_tmp = RadioInf.Name;
+				cnt = 0;
+				while (*ptr != '\r' && *ptr != '\n' && cnt
+						< STATION_NAME_MAX_LEN - 1) {
+					*ptr_tmp++ = *ptr++;
+					cnt++;
+				}
+				*ptr_tmp = '\0';
+			}
+			/* Znajdź bitrate */
+			ptr = strstr(mybuf, "icy-br");
+			if (ptr != NULL) {
+				ptr = ptr + 7; /* przestaw wskaźnik na pierwszy bajt icy-br */
+				RadioInf.Bitrate = atoi(ptr);
+			}
 
-		if(NetConn == NULL){
-			/*No memory for new connection? */
-			printf("No mem for new con\r\n");
+			/* Znajdź koniec nagłówka */
+			ptr = strstr(mybuf, "\r\n\r\n");
+			if (ptr != NULL) {
+				HeaderLen = ptr - mybuf + 4; /* Oblicz długosc danych nagłówkoych w odebranej porcji danych */
+				DataCounter = CpBytes - HeaderLen; /* W pakiecie są pierwsze dane strumienia */
+				RAM_bufput(mybuf, DataCounter); /* Wrzuć te dane do bufora VS */
+				break;
+			}
 		}
-		while((rc1 = netconn_bind(NetConn, NULL, 3250)) != ERR_OK){	/* Adres IP i port local host'a */
-			printf("Ncon_bind error: ");
-			PrintERR(rc1);
-			vTaskDelay(10000/portTICK_RATE_MS); 		// wait 10 sec
+		/* Wywietl parametry */
+		printf("%s\r\n", RadioInf.Name);
+		GUI_SetFont(&GUI_Font16B_ASCII);
+		GUI_DispStringHCenterAt(RadioInf.Name, 160, 15);
+		GUI_DispNextLine();
+		GUI_DispString("Bitrate: ");
+		GUI_DispDecSpace(RadioInf.Bitrate, 3);
+		GUI_DispString(" kbps");
+		GUI_DispNextLine();
+		GUI_DispString("Metadata interval: ");
+		GUI_DispDecSpace(RadioInf.MetaInt, 6);
+		GUI_DispString(" B");
+
+		if (RadioInf.Bitrate >= 96) {
+			buffer_tresh = BUFF_TRESH_3;
+		} else if (RadioInf.Bitrate >= 48) {
+			buffer_tresh = BUFF_TRESH_2;
+		} else {
+			buffer_tresh = BUFF_TRESH_1;
 		}
-		printf("netcon binded\r\n");
-connect:
-		rc2 = netconn_connect(NetConn, &ipaddrserv, portserv);		/* Adres IP i port serwera */
-
-		if(rc2 != ERR_OK){
-			printf("Ncon_connect error: ");
-			PrintERR(rc2);
-			LED_On(0);
-			netconn_delete(NetConn);
-			goto reconnect;
-		}else{
-			rc1 = netconn_write(NetConn, request_header, strlen(request_header), NETCONN_COPY);
-			if(rc1 != ERR_OK){
-				printf("Ncon_write error: ");
-				PrintERR(rc1);
-			}
-			vTaskDelay(4000/portTICK_RATE_MS);
-
-			while((netconn_recv(NetConn, &inbuf)) == ERR_OK){
-				BufLen = netbuf_len(inbuf);
-				CpBytes = netbuf_copy(inbuf, mybuf, BufLen);
-				netbuf_delete(inbuf);
-
-				/* Znajdź kod statusu żądania HTTP */
-				ptr = strstr(mybuf, "ICY");
-				ptr_tmp = strstr(mybuf, "\r\n");
-				if((ptr != NULL) && (ptr_tmp != NULL)){
-					do{
-						UART_PrintChar(*ptr);
-					}while(ptr++ != ptr_tmp);
-					UART_PrintStr("\r\n");
-				}
-				/* Znajdź wartosć interwału meta-danych */
-				ptr = strstr(mybuf, "icy-metaint");
-				if(ptr != NULL){
-					ptr = ptr+12;				/* przestaw wskaźnik na pierwszy bajt MetaInt */
-					RadioInf.MetaInt = atoi(ptr);
-					RadioInf.Metadata = TRUE;
-				}else{
-					RadioInf.MetaInt = 0;
-					RadioInf.Metadata = FALSE;
-				}
-				/* Znajdź nazwę stacji */
-				ptr = strstr(mybuf, "icy-name");
-				if(ptr != NULL){
-					ptr = ptr+9;				/* przestaw wkaźnik na pierwszy bajt nazwy */
-					ptr_tmp = RadioInf.Name;
-					cnt = 0;
-					while(*ptr != '\r' && *ptr != '\n' && cnt<STATION_NAME_MAX_LEN-1){
-						*ptr_tmp++ = *ptr++;
-						cnt++;
-					}
-					*ptr_tmp = '\0';
-				}
-				/* Znajdź bitrate */
-				ptr = strstr(mybuf, "icy-br");
-				if(ptr != NULL){
-					ptr = ptr+7;				/* przestaw wskaźnik na pierwszy bajt icy-br */
-					RadioInf.Bitrate = atoi(ptr);
-				}
-
-				/* Znajdź koniec nagłówka */
-				ptr = strstr(mybuf, "\r\n\r\n");
-				if (ptr != NULL) {
-					HeaderLen = ptr - mybuf + 4;			/* Oblicz długosc danych nagłówkoych w odebranej porcji danych */
-					DataCounter = CpBytes - HeaderLen;		/* W pakiecie są pierwsze dane strumienia */
-					RAM_bufput(mybuf, DataCounter);		/* Wrzuć te dane do bufora VS */
-					break;
-				}
-			}
-			/* Wywietl parametry */
-			printf("%s\r\n", RadioInf.Name);
-			GUI_SetFont(&GUI_Font16B_ASCII);
-			GUI_DispStringHCenterAt(RadioInf.Name,160, 15);
-			GUI_DispNextLine();
-			GUI_DispString("Bitrate: ");
-			GUI_DispDecSpace(RadioInf.Bitrate, 3);
-			GUI_DispString(" kbps");
-			GUI_DispNextLine();
-			GUI_DispString("Metadata interval: ");
-			GUI_DispDecSpace(RadioInf.MetaInt, 6);
-			GUI_DispString(" B");
-
-			if(RadioInf.Bitrate >= 96){
-				buffer_tresh = BUFF_TRESH_3;
-			}else if(RadioInf.Bitrate >= 48){
-				buffer_tresh = BUFF_TRESH_2;
-			}else{
-				buffer_tresh = BUFF_TRESH_1;
-			}
-
+		if (flaga != PLAY) {
 			/* Utwórz pasek postępu */
 			GUI_SetColor(GUI_WHITE);
 			GUI_SetFont(&GUI_Font8x16);
-			GUI_DispStringHCenterAt("Buffering...",160, 120);
+			GUI_DispStringHCenterAt("Buffering...", 160, 120);
 			BuffProgBar = PROGBAR_Create(100, 140, 120, 20, WM_CF_SHOW);
 			PROGBAR_SetValue(BuffProgBar, 0);
 			WM_Paint(BuffProgBar);
+		}
 
-			while((rc3 = netconn_recv(NetConn, &inbuf)) == ERR_OK){
+		while ((rc3 = netconn_recv(NetConn, &inbuf)) == ERR_OK) {
 
-				BufLen = netbuf_len(inbuf);
-				if(BufLen > 6144){
-					printf("ERROR3\r\n");
+			BufLen = netbuf_len(inbuf);
+			if (BufLen > 6144) {
+				printf("ERROR3\r\n");
+			}
+			CpBytes = netbuf_copy(inbuf, mybuf, BufLen); /* Skopiuj odebrane dane */
+			netbuf_delete(inbuf); /* Zwolnij bufor */
+
+			if (RAM_buflen() < 32 && flaga == PLAY) { /* Bufor jest pusty - zatrzymaj zadanie VS */
+				printf("BUFF EMPTY\r\n");
+				//					xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY);			/* poczekaj aż VS zwolni SPI1 */
+				vTaskSuspend(xVsTskHandle);
+				//					xSemaphoreGive(xSPI1_Mutex);						/* Oddaj mutex */
+				flaga = STOP;
+				resetbuff(); /* Resetuj bufor */
+
+				/* Utwórz pasek postępu */
+				GUI_SetFont(&GUI_Font8x16);
+				GUI_DispStringHCenterAt("Buff empty - buffering...", 160, 120);
+				BuffProgBar = PROGBAR_Create(100, 140, 120, 20, WM_CF_SHOW);
+				PROGBAR_SetBarColor(BuffProgBar, 0, GUI_DARKGRAY);
+				PROGBAR_SetBarColor(BuffProgBar, 1, GUI_LIGHTGRAY);
+				PROGBAR_SetValue(BuffProgBar, 0);
+				WM_Paint(BuffProgBar);
+			}
+
+			switch (RadioInf.Metadata) {
+			case TRUE:
+				DataCounter += CpBytes;
+				/* W odebranych danych są meta-dane */
+				if (DataCounter > RadioInf.MetaInt) {
+					get_metadata(CpBytes, &DataCounter);
 				}
-				CpBytes= netbuf_copy(inbuf, mybuf, BufLen);	/* Skopiuj odebrane dane */
-				netbuf_delete(inbuf);						/* Zwolnij bufor */
-
-				if(RAM_buflen() < 32 && flaga == PLAY){					/* Bufor jest pusty - zatrzymaj zadanie VS */
-					printf("BUFF EMPTY\r\n");
-//					xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY);			/* poczekaj aż VS zwolni SPI1 */
-					vTaskSuspend(xVsTskHandle);
-//					xSemaphoreGive(xSPI1_Mutex);						/* Oddaj mutex */
-					flaga = STOP;
-					resetbuff();						/* Resetuj bufor */
-
-					/* Utwórz pasek postępu */
-					GUI_SetFont(&GUI_Font8x16);
-					GUI_DispStringHCenterAt("Buff empty - buffering...",160, 120);
-					BuffProgBar = PROGBAR_Create(100, 140, 120, 20, WM_CF_SHOW);
-					PROGBAR_SetBarColor(BuffProgBar, 0, GUI_DARKGRAY);
-					PROGBAR_SetBarColor(BuffProgBar, 1, GUI_LIGHTGRAY);
-					PROGBAR_SetValue(BuffProgBar, 0);
-					WM_Paint(BuffProgBar);
-				}
-
-				switch(RadioInf.Metadata){
-				case TRUE:
-					DataCounter += CpBytes;
-					/* W odebranych danych są meta-dane */
-					if(DataCounter > RadioInf.MetaInt){
-						get_metadata(CpBytes, &DataCounter );
-					}
-					/* W odebranych danych niema meta-danych */
-					else{
-						while(RAM_buffree() < CpBytes){			/* Sprawdź czy jest miejsce w buforze vs */
-							vTaskDelay(5/portTICK_RATE_MS);
-						}
-						RAM_bufput(mybuf, CpBytes);
-					}
-					break;
-				case FALSE:
-					while(RAM_buffree() < CpBytes){			/* Sprawdź czy jest miejsce w buforze vs */
-						vTaskDelay(5/portTICK_RATE_MS);
+				/* W odebranych danych niema meta-danych */
+				else {
+					while (RAM_buffree() < CpBytes) { /* Sprawdź czy jest miejsce w buforze vs */
+						vTaskDelay(5 / portTICK_RATE_MS);
 					}
 					RAM_bufput(mybuf, CpBytes);
-					break;
-				default:
-					break;
 				}
-
-
-				if(flaga == STOP){
-					buffered_byte = RAM_buflen();
-					buffering_progress = (buffered_byte*100)/(buffer_tresh);
-
-					if(buffering_progress>100) buffering_progress = 100;
-
-					PROGBAR_SetValue(BuffProgBar, buffering_progress);
-					WM_Paint(BuffProgBar);
-					if(RAM_buflen()>buffer_tresh && flaga == STOP){	/* Bufor jest pełny */
-						vTaskResume(xVsTskHandle);					/* Uruchom zadanie dekodera */
-						flaga = PLAY;								/* Ustaw flagę uruchomienia zadania dekodera */
-						/*Usuń pasek postępu */
-						PROGBAR_Delete(BuffProgBar);
-						GUI_ClearRect(0, 120, 320, 160);
-					}
+				break;
+			case FALSE:
+				while (RAM_buffree() < CpBytes) { /* Sprawdź czy jest miejsce w buforze vs */
+					vTaskDelay(5 / portTICK_RATE_MS);
 				}
-
-				LED_Toggle(1);
-			}
-			printf("Recv error: ");
-			PrintERR(rc3);
-			if(rc3 == ERR_TIMEOUT){
-				goto connect;
+				RAM_bufput(mybuf, CpBytes);
+				break;
+			default:
+				break;
 			}
 
-			LED_On(0);
-			rc4=netconn_close(NetConn);
-			if(rc4 != ERR_OK){
-				printf("Ncon_close error: ");
-				PrintERR(rc4);
+			if (flaga == STOP) {
+				buffered_byte = RAM_buflen();
+				buffering_progress = (buffered_byte * 100) / (buffer_tresh);
+
+				if (buffering_progress > 100)
+					buffering_progress = 100;
+
+				PROGBAR_SetValue(BuffProgBar, buffering_progress);
+				WM_Paint(BuffProgBar);
+				if (RAM_buflen() > buffer_tresh && flaga == STOP) { /* Bufor jest pełny */
+					vTaskResume(xVsTskHandle); /* Uruchom zadanie dekodera */
+					flaga = PLAY; /* Ustaw flagę uruchomienia zadania dekodera */
+					/*Usuń pasek postępu */
+					PROGBAR_Delete(BuffProgBar);
+					GUI_ClearRect(0, 120, 320, 160);
+				}
 			}
-			printf("netcon closed\r\n");
-			netconn_delete(NetConn);
-			printf("netcon deleted\r\n");
-			vTaskDelay(1000/portTICK_RATE_MS);
-			goto reconnect;
+
+			LED_Toggle(1);
 		}
+		printf("Recv error: ");
+		PrintERR(rc3);
+		if (rc3 == ERR_TIMEOUT) {
+			goto connect;
+		}
+
+		LED_On(0);
+		rc4 = netconn_close(NetConn);
+		if (rc4 != ERR_OK) {
+			printf("Ncon_close error: ");
+			PrintERR(rc4);
+		}
+		printf("netcon closed\r\n");
+		netconn_delete(NetConn);
+		printf("netcon deleted\r\n");
+		vTaskDelay(1000 / portTICK_RATE_MS);
+		goto reconnect;
 	}
+
 	while(1) vTaskDelay(100/portTICK_RATE_MS);			/* Tutaj aplikacja nie powinna dojsc */
 }
+
+/*
+ * Print lwip error description
+ */
 
 void PrintERR(err_t rc){
 	switch(rc){

@@ -8,6 +8,8 @@
 
 #include "LCDConf.h"
 
+#include "calibration.h"
+
 extern int CalibrationComplete;
 
 static int _Log2Phys(int l, I32 l0, I32 l1, I32 p0, I32 p1) {

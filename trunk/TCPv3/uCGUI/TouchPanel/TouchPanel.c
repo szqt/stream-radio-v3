@@ -79,8 +79,8 @@ static void ADS7843_SPI_Init(void)
 	LPC_PINCON->PINSEL0 |=  (2UL<<14) | (2UL<<16) | (2UL<<18);    /* P0.7 SCK1,P0.8 MISO1,P0.9 MOSI1 */
 
 	/* PCLK_SSP1=CCLK */
-	LPC_SC->PCLKSEL0 &= ~(3<<20);               /* PCLKSP0 = CCLK/4 (18MHz) */
-	LPC_SC->PCLKSEL0 |=  (1<<20);               /* PCLKSP0 = CCLK   (72MHz) */
+	LPC_SC->PCLKSEL0 &= ~(3<<20);               /* PCLKSP0 = CCLK/4 (25MHz) */
+	LPC_SC->PCLKSEL0 |=  (1<<20);               /* PCLKSP0 = CCLK   (100MHz) */
 
 	LPC_SSP1->CR0  = 0x0007;                    /* 8Bit, CPOL=0, CPHA=0         */
 	LPC_SSP1->CR1  = 0x0002;                    /* SSP1 enable, master          */
@@ -110,7 +110,7 @@ void TP_Init(void)
   LPC_GPIO0->FIODIR |=  (1<<6);   /* P0.6 CS is output */
   LPC_GPIO2->FIODIR &=  ~(1<<13);  /* P2.13 TP_INT is input */
   TP_CS(1); 
-  ADS7843_SPI_Init(); 
+//  ADS7843_SPI_Init(); //SPI  jest konfigurowany przy inicjalizacji pamieci
 } 
 
 /*******************************************************************************

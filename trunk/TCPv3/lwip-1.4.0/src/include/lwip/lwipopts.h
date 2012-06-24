@@ -96,7 +96,7 @@
 /**
  * PBUF_POOL_SIZE: the number of buffers in the pbuf pool.
  */
-#define PBUF_POOL_SIZE                    22    // Default 16, was 36
+#define PBUF_POOL_SIZE                    16    // Default 16, ostatnio było 22 i było ok
 
 //*****************************************************************************
 //

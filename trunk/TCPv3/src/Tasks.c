@@ -21,6 +21,13 @@
 #include "vs1053.h"
 #include "gpio.h"
 #include "uart.h"
+#include "external_RAM.h"
+
+#include "GUI.h"
+#include "WM.h"
+#include "BUTTON.h"
+#include "TouchPanel.h"
+#include "calibration.h"
 
 
 
@@ -28,7 +35,9 @@
 /*--- GLOBALS ---*/
 xSemaphoreHandle xDMAch1_Semaphore = NULL;
 xSemaphoreHandle xButton_pushed_Semaphore = NULL;
-extern xSemaphoreHandle xSPI0_Mutex;
+extern xSemaphoreHandle xSPI0_Mutex;	// SDI + SCI
+extern xSemaphoreHandle xSPI1_Mutex;	// pamieć FRAM + Touch Panel
+extern xSemaphoreHandle xDhcpCmplSemaphore_1;	// Semafor informujący o powodzeniu DHCP
 
 /* Uchwyty do zadan */
 extern xTaskHandle xVsTskHandle;
@@ -36,6 +45,8 @@ extern xTaskHandle xHeartbeatTskHandle;
 extern xTaskHandle xShoutcastTaskHandle;
 extern xTaskHandle xETHTsk;
 extern sys_thread_t xLWIPTskHandler;
+extern xTaskHandle xTouchPanelTskHandle;
+extern xTaskHandle xWinMngTskHandle;
 
 void vVsTask(void * pvParameters) {
 
@@ -51,27 +62,39 @@ void vVsTask(void * pvParameters) {
 			VS_feed();
 			xSemaphoreGive(xSPI0_Mutex);
 		}
-		vTaskDelay(15/portTICK_RATE_MS);
+		vTaskDelay(20/portTICK_RATE_MS);
 	}
 }
 
-//void vGUITask(void * pvParameters) {
-//	GUI_Init();
-//	while (1) {
-//		if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
-//			VS_feed();
-//			xSemaphoreGive(xSPI0_Mutex);
-//		}
-//		vTaskDelay(15/portTICK_RATE_MS);
-//	}
-//}
+void vTouchPanelTask(void * pvParameters) {
+
+	TP_Init();
+
+	while (1) {
+		if (xSemaphoreTake(xSPI1_Mutex, portMAX_DELAY) == pdTRUE) {
+			SPI1_SetSpeed(SPI_2MHz);
+			GUI_TOUCH_Exec();
+			SPI1_SetSpeed(SPI_16MHz);
+			xSemaphoreGive(xSPI1_Mutex);
+		}
+		vTaskDelay(20/portTICK_RATE_MS);
+	}
+}
+
+void vWinMngTask(void * pvParameters){
+	while(1){
+		WM_Exec();
+		vTaskDelay(10/portTICK_RATE_MS);
+	}
+}
 
 void vHeartbeatTask (void * pvParameters){
 //	static uint8_t last_vol = 0;
 //	uint8_t new_vol;
 //	uint8_t licznik=0;
 	char buf[120];//, buf2[300];
-	unsigned portBASE_TYPE Shoutcast, Vs, Heartbeat, lwIP, ETH;
+	unsigned portBASE_TYPE Shoutcast, Vs, Heartbeat, lwIP, ETH, TP;
+	BUTTON_Handle hOK_Button;
 
 	vSemaphoreCreateBinary(xButton_pushed_Semaphore);
 	if(xDMAch1_Semaphore != NULL){
@@ -82,6 +105,18 @@ void vHeartbeatTask (void * pvParameters){
 
 	BUTTON_Config();	//INT0 Button as source of interrupt
 
+	GUI_Init();
+	_ExecCalibration();
+	GUI_SetBkColor(GUI_BLUE);
+	GUI_Clear();
+
+
+
+	if (xSemaphoreTake(xDhcpCmplSemaphore_1, portMAX_DELAY) == pdTRUE) {
+		hOK_Button = BUTTON_Create(70, 85, 180, 70, 12, WM_CF_SHOW);
+		GUI_SetFont(&GUI_Font32_ASCII);
+		BUTTON_SetText(hOK_Button, "OK");
+	}
 	while(1){
 
 //		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
@@ -100,6 +135,11 @@ void vHeartbeatTask (void * pvParameters){
 //			UART_PrintStr("\r\n");
 //			licznik = 0;
 //		}
+		if(GUI_WaitKey()==12){
+			BUTTON_Delete(hOK_Button);
+			GUI_ClearRect(0, 80, 319, 170);
+			vTaskResume(xShoutcastTaskHandle);		// po kalibracji odblokuj zadanie SHOUTcast
+		}
 		if (pdTRUE == xSemaphoreTake(xButton_pushed_Semaphore, 0)) {
 			printf("\r\n--------Run time stats-------\r\n");
 			vTaskGetRunTimeStats((signed char*) buf);
@@ -114,6 +154,7 @@ void vHeartbeatTask (void * pvParameters){
 			Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
 			lwIP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
 			ETH = uxTaskGetStackHighWaterMark(xETHTsk);
+			TP = uxTaskGetStackHighWaterMark(xTouchPanelTskHandle);
 
 			printf("\r\n--------Tasks stack watermark-------\r\n");
 			printf("Hearbeat:   %d\r\n", Heartbeat);
@@ -121,6 +162,7 @@ void vHeartbeatTask (void * pvParameters){
 			printf("VS:         %d\r\n", Vs);
 			printf("lwIP:       %d\r\n", lwIP);
 			printf("ETH:        %d\r\n", ETH);
+			printf("TP          %d\r\n", TP);
 			printf("\r\n------------------------------------\r\n");
 		}
 
