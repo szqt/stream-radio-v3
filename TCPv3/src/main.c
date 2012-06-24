@@ -52,6 +52,8 @@ void eth_lwip_init(void);
 /* Uchwyty do zadan */
 xTaskHandle xVsTskHandle;
 xTaskHandle xHeartbeatTskHandle;
+xTaskHandle xTouchPanelTskHandle;
+xTaskHandle xWinMngTskHandle;
 extern xTaskHandle xShoutcastTaskHandle;
 extern xTaskHandle xETHTsk;
 extern sys_thread_t xLWIPTskHandler;
@@ -77,19 +79,10 @@ struct netif *loop_netif;
 int main()
 {
 	DelayTimer_Config();
-//	GLCD_Init();
-//	GLCD_Clear(Purple);
 
-
-
-
-	GUI_Init();
-	GUI_SetBkColor(GUI_BLACK);
-	GUI_Clear();
-//	GUI_DispString("Hello world!");
-
-
-
+//	GUI_Init();
+//	GUI_SetBkColor(GUI_BLACK);
+//	GUI_Clear();
 
 	LED_Config();
 	UART2_Config(115200);
@@ -118,10 +111,11 @@ int main()
 	if(IPradio_init() != 0){
 		// Could not be initiated
 	}
-//	HTTP_init();
 	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
 	xTaskCreate( vHeartbeatTask, ( signed portCHAR * ) "HbeatTsk", 400, NULL, 3, &xHeartbeatTskHandle );
-
+	xTaskCreate( vTouchPanelTask, ( signed portCHAR * ) "TPTsk", 150, NULL, 3, &xTouchPanelTskHandle );
+	xTaskCreate( vWinMngTask, ( signed portCHAR * ) "WMTsk", 250, NULL, 1, &xWinMngTskHandle );
+	vTaskSuspend(xShoutcastTaskHandle);
 	vTaskSuspend(xVsTskHandle);
 
 	vTaskStartScheduler();

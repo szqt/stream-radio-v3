@@ -52,17 +52,17 @@ extern Matrix matrix ;
 extern Coordinate  display ;
 
 /* Private define ------------------------------------------------------------*/
-/* ADÍ¨µÀÑ¡ÔñÃüÁî×ÖºÍ¹¤×÷¼Ä´æÆ÷ */
-#define	CHX 	        0x90 	/* Í¨µÀY+µÄÑ¡Ôñ¿ØÖÆ×Ö */	
-#define	CHY 	        0xd0	/* Í¨µÀX+µÄÑ¡Ôñ¿ØÖÆ×Ö */
+/* ADÍ¨ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖºÍ¹ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ */
+#define	CHX 	        0x90 	/* Í¨ï¿½ï¿½Y+ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */	
+#define	CHY 	        0xd0	/* Í¨ï¿½ï¿½X+ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 
 #define SSPSR_RNE       2
 #define SSPSR_BSY       4
 
 /* bit-frequency = PCLK / CPSR */
-#define SPI_SPEED_4MHz    18 	  /* 4MHz */
-#define SPI_SPEED_2MHz    36 	  /* 2MHz */
-#define SPI_SPEED_400kHz  180	  /* 400kHz */
+#define SPI_SPEED_4MHz    25 	  /* 4MHz */
+#define SPI_SPEED_2MHz    50 	  /* 2MHz */
+#define SPI_SPEED_400kHz  250	  /* 400kHz */
 
 
 #define TP_CS(a)	if (a)	\

@@ -117,6 +117,11 @@ void RAM_Init(void) {
     CS_RAM2_HIGH();			/* Set high CS2 pin */
     CS_RAM2_SET_OUTPUT();	/* Set output CS2 pin */
 
+    /* Panel dotykowy */
+    LPC_GPIO0->FIOSET = (1<<6);
+    LPC_GPIO0->FIODIR |=  (1<<6);   /* P0.6 CS is output */
+
+
     SPI1_Config();
 
 	delay_ms(1);
