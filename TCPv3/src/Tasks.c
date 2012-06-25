@@ -26,6 +26,8 @@
 #include "GUI.h"
 #include "WM.h"
 #include "BUTTON.h"
+#include "LISTBOX.h"
+#include "SCROLLBAR.h"
 #include "TouchPanel.h"
 #include "calibration.h"
 
@@ -35,6 +37,7 @@
 /*--- GLOBALS ---*/
 xSemaphoreHandle xDMAch1_Semaphore = NULL;
 xSemaphoreHandle xButton_pushed_Semaphore = NULL;
+xQueueHandle xListBoxQueue;
 extern xSemaphoreHandle xSPI0_Mutex;	// SDI + SCI
 extern xSemaphoreHandle xSPI1_Mutex;	// pamieć FRAM + Touch Panel
 extern xSemaphoreHandle xDhcpCmplSemaphore_1;	// Semafor informujący o powodzeniu DHCP
@@ -77,24 +80,25 @@ void vTouchPanelTask(void * pvParameters) {
 			SPI1_SetSpeed(SPI_16MHz);
 			xSemaphoreGive(xSPI1_Mutex);
 		}
-		vTaskDelay(20/portTICK_RATE_MS);
+		vTaskDelay(10/portTICK_RATE_MS);
 	}
 }
 
 void vWinMngTask(void * pvParameters){
 	while(1){
 		WM_Exec();
-		vTaskDelay(10/portTICK_RATE_MS);
 	}
 }
 
 void vHeartbeatTask (void * pvParameters){
-//	static uint8_t last_vol = 0;
-//	uint8_t new_vol;
-//	uint8_t licznik=0;
-	char buf[120];//, buf2[300];
-	unsigned portBASE_TYPE Shoutcast, Vs, Heartbeat, lwIP, ETH, TP;
-	BUTTON_Handle hOK_Button;
+
+	int Key, Entries, ySize;
+	uint16_t click_cnt=0;
+	int8_t Item_nb;
+	BUTTON_Handle hOK_Button, hTest_Key;
+	LISTBOX_Handle hStationListBox;
+	static enum GuiState eGuiState = SELECT;
+	static const GUI_ConstString StationList[] = {"ZET", "RMFFM", "RMFMAXXX", "SKY.FM", "ESKA ROCK", "TERMINAL", NULL};
 
 	vSemaphoreCreateBinary(xButton_pushed_Semaphore);
 	if(xDMAch1_Semaphore != NULL){
@@ -102,72 +106,96 @@ void vHeartbeatTask (void * pvParameters){
 	}else{
 		// The semaphore was not created
 	}
-
 	BUTTON_Config();	//INT0 Button as source of interrupt
+	xSemaphoreTake(xButton_pushed_Semaphore, 0);
+
+	xListBoxQueue = xQueueCreate(2, sizeof(int8_t));
+
 
 	GUI_Init();
-	_ExecCalibration();
+	if(0){
+		_ExecCalibration();
+	}else{
+		_DefaultCalibration();
+	}
+
 	GUI_SetBkColor(GUI_BLUE);
 	GUI_Clear();
 
 
 
 	if (xSemaphoreTake(xDhcpCmplSemaphore_1, portMAX_DELAY) == pdTRUE) {
-		hOK_Button = BUTTON_Create(70, 85, 180, 70, 12, WM_CF_SHOW);
+		/* OK button */
+		hOK_Button = BUTTON_CreateEx(120, 210, 80, 20, 0, WM_CF_SHOW, 0, 12);
 		GUI_SetFont(&GUI_Font32_ASCII);
 		BUTTON_SetText(hOK_Button, "OK");
+
+		/* Cancel button */
+		hTest_Key = BUTTON_CreateEx(120, 180, 80, 20, 0, WM_CF_SHOW, 0, 13);
+		GUI_SetFont(&GUI_Font16B_ASCII);
+		BUTTON_SetText(hTest_Key, "CLICK");
+		WM_SetStayOnTop(hTest_Key, 1);
+
+		/* Station list */
+		Entries = 6;//countof(StationList) - 1;
+		ySize = GUI_GetYDistOfFont(&GUI_Font16B_ASCII)*Entries;
+		hStationListBox = LISTBOX_CreateEx(100, 10, 120, ySize, 0, WM_CF_SHOW, 0, 5, StationList);
+		SCROLLBAR_CreateAttached(hStationListBox, SCROLLBAR_CF_VERTICAL);
+
 	}
+
 	while(1){
+		Key = GUI_GetKey();
+		//top = WM_GetStayOnTop(hTest_Key);
 
-//		new_vol = ((LPC_ADC->ADDR5>>8) & 0x00FF);
-//		if((new_vol > last_vol+4) || (new_vol < last_vol - 4)){
-//			if (xSemaphoreTake(xSPI0_Mutex, portMAX_DELAY) == pdTRUE) {
-//				vs_set_volume(new_vol);
-//				LED_Toggle(3);
-//				xSemaphoreGive(xSPI0_Mutex);
-//			}
-//			last_vol = new_vol;
-//
-//		}
-//		licznik++;
-//		if(licznik >=40){
-//			UART_PrintNum(RAM_buflen());
-//			UART_PrintStr("\r\n");
-//			licznik = 0;
-//		}
-		if(GUI_WaitKey()==12){
-			BUTTON_Delete(hOK_Button);
-			GUI_ClearRect(0, 80, 319, 170);
-			vTaskResume(xShoutcastTaskHandle);		// po kalibracji odblokuj zadanie SHOUTcast
+		switch(eGuiState){
+		case SELECT:
+			switch (Key){
+			case 12:
+				Item_nb = LISTBOX_GetSel(hStationListBox);
+				if(Item_nb >= 0){
+					if(xQueueSendToBack(xListBoxQueue, &Item_nb, 50/portTICK_RATE_MS) == pdPASS){
+						/* OK button delete */
+						BUTTON_Delete(hOK_Button);
+						GUI_SetBkColor(GUI_BLUE);
+						GUI_ClearRect(120, 210, 200, 230);
+						GUI_ClearKeyBuffer();
+
+						/* Listbox delete */
+						LISTBOX_Delete(hStationListBox);
+						GUI_ClearRect(100, 10, 220, ySize+10);
+
+						eGuiState = PLAYING;
+					}
+				}
+				vTaskResume(xShoutcastTaskHandle);
+				break;
+			case 13:
+				click_cnt++;
+				GUI_SetFont(&GUI_Font16B_ASCII);
+				Item_nb = LISTBOX_GetSel(hStationListBox);
+				GUI_DispStringAt("CNT = ", 0, 210);
+				GUI_DispDecSpace(Item_nb, 3);
+				break;
+			default:
+				break;
+			}
+
+			break;
+		case PLAYING:
+			switch (Key){
+			case 13:
+				click_cnt++;
+				GUI_SetFont(&GUI_Font16B_ASCII);
+//				Item_nb = LISTBOX_GetSel(hStationListBox);
+				GUI_DispStringAt("CNT = ", 0, 210);
+				GUI_DispDecSpace(123, 3);
+				break;
+			default:
+				break;
+			}
 		}
-		if (pdTRUE == xSemaphoreTake(xButton_pushed_Semaphore, 0)) {
-			printf("\r\n--------Run time stats-------\r\n");
-			vTaskGetRunTimeStats((signed char*) buf);
-			UART_PrintBuf(buf, strlen(buf));
-			//		vTaskList((signed char*)buf2);
-			//		UART_PrintBuf (buf2, strlen(buf2));
-			printf("\r\n-----------------------------\r\n");
-
-			//
-			Heartbeat = uxTaskGetStackHighWaterMark(NULL);
-			Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
-			Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
-			lwIP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
-			ETH = uxTaskGetStackHighWaterMark(xETHTsk);
-			TP = uxTaskGetStackHighWaterMark(xTouchPanelTskHandle);
-
-			printf("\r\n--------Tasks stack watermark-------\r\n");
-			printf("Hearbeat:   %d\r\n", Heartbeat);
-			printf("Shoutcast:  %d\r\n", Shoutcast);
-			printf("VS:         %d\r\n", Vs);
-			printf("lwIP:       %d\r\n", lwIP);
-			printf("ETH:        %d\r\n", ETH);
-			printf("TP          %d\r\n", TP);
-			printf("\r\n------------------------------------\r\n");
-		}
-
-		LED_Toggle(2);
-		vTaskDelay(500/portTICK_RATE_MS);
+		vTaskDelay(20/portTICK_RATE_MS);
 	}
 }
 
@@ -184,4 +212,39 @@ void EINT3_IRQHandler(void){
 	if (xHigherPriorityTaskWoken == pdTRUE){
 		portYIELD();
 	}
+}
+
+void SystemStats(void){
+
+	char buf[120];//, buf2[300];
+	unsigned portBASE_TYPE Shoutcast, Vs, Heartbeat, lwIP, ETH, TP, WM;
+	if (pdTRUE == xSemaphoreTake(xButton_pushed_Semaphore, 0)) {
+		printf("\r\n-----------Run time stats-----------\r\n");
+		vTaskGetRunTimeStats((signed char*) buf);
+		UART_PrintBuf(buf, strlen(buf));
+		//		vTaskList((signed char*)buf2);
+		//		UART_PrintBuf (buf2, strlen(buf2));
+		printf("\r\n------------------------------------\r\n");
+
+		//
+		Heartbeat = uxTaskGetStackHighWaterMark(NULL);
+		Shoutcast = uxTaskGetStackHighWaterMark(xShoutcastTaskHandle);
+		Vs = uxTaskGetStackHighWaterMark(xVsTskHandle);
+		lwIP = uxTaskGetStackHighWaterMark(xLWIPTskHandler);
+		ETH = uxTaskGetStackHighWaterMark(xETHTsk);
+		TP = uxTaskGetStackHighWaterMark(xTouchPanelTskHandle);
+		WM = uxTaskGetStackHighWaterMark(xWinMngTskHandle);
+
+		printf("\r\n--------Tasks stack watermark-------\r\n");
+		printf("Hearbeat:   %d\r\n", Heartbeat);
+		printf("Shoutcast:  %d\r\n", Shoutcast);
+		printf("VS:         %d\r\n", Vs);
+		printf("lwIP:       %d\r\n", lwIP);
+		printf("ETH:        %d\r\n", ETH);
+		printf("TouchP:     %d\r\n", TP);
+		printf("WinMan:    %d\r\n", WM);
+		printf("\r\n------------------------------------\r\n");
+	}
+
+	LED_Toggle(2);
 }
