@@ -28,7 +28,8 @@ Purpose     : Config / System dependent externals for GUI
 *
 *       Global data
 */
-volatile portTickType;
+//volatile portTickType;
+xSemaphoreHandle xDispMutex = NULL;
 xSemaphoreHandle xDispSem = NULL;
 
 /*********************************************************************
@@ -72,7 +73,7 @@ void GUI_X_Init(void) {}
 */
 
 void GUI_X_ExecIdle(void) {
-	vTaskDelay(50/portTICK_RATE_MS);
+	vTaskDelay(30/portTICK_RATE_MS);
 }
 
 /*********************************************************************
@@ -95,6 +96,10 @@ void GUI_X_ExecIdle(void) {
 
 void GUI_X_InitOS (void)
 {
+	/* Mmutex for locking */
+	xDispMutex = xSemaphoreCreateMutex();
+
+	/* Semaphore for signaling */
 	vSemaphoreCreateBinary(xDispSem);
 	if(xDispSem != NULL){
 		xSemaphoreTake(xDispSem, 0);
@@ -103,9 +108,15 @@ void GUI_X_InitOS (void)
 	}
 }
 
+U32 GUI_X_GetTaskId(void){
+	xTaskHandle xTask;
+	xTask = xTaskGetCurrentTaskHandle();
+	return ((U32)(xTask));
+}
+
 void GUI_X_Lock(void)
 {
-	if(xSemaphoreTake(xDispSem, portMAX_DELAY) == pdTRUE){
+	if(xSemaphoreTake(xDispMutex, portMAX_DELAY) == pdTRUE){
 	}else{
 		//error
 	}
@@ -114,6 +125,25 @@ void GUI_X_Lock(void)
 
 void GUI_X_Unlock(void)
 {
+	xSemaphoreGive(xDispMutex);
+}
+/*********************************************************************
+*
+*      Event driving (optional with multitasking)
+*
+*                 GUI_X_WaitEvent()
+*                 GUI_X_SignalEvent()
+*/
+
+
+void GUI_X_WaitEvent(void)    {
+	if(xSemaphoreTake(xDispSem, portMAX_DELAY) == pdTRUE){
+	}else{
+		//error
+	}
+}
+
+void GUI_X_SignalEvent(void)    {
 	xSemaphoreGive(xDispSem);
 }
 

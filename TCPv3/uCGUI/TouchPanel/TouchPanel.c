@@ -95,7 +95,21 @@ static void ADS7843_SPI_Init(void)
 	{
 		dummy = LPC_SSP1->DR;
 	}
-} 
+}
+
+/*******************************************************************************
+* Function Name  : Cleat_SPI1
+* Description    : Clear RX FIFO
+* Input          : Noneֵ
+* Output         : None
+* Return         : None
+* Attention		 : None
+*******************************************************************************/
+void Clear_SPI1(void){
+	uint8_t dummy;
+	while( LPC_SSP1->SR & ( 1 << SSPSR_RNE ) )			/* Make sure that SSP1 Rx FIFO is empty */
+		dummy = LPC_SSP1->DR;
+}
 
 /*******************************************************************************
 * Function Name  : TP_Init
@@ -169,7 +183,6 @@ static uint8_t WR_CMD (uint8_t cmd)
 static int RD_AD(void)  
 { 
   unsigned short buf,temp; 
-
   temp = WR_CMD(0x00);
   buf = temp<<8; 
   DelayUS(1); 
@@ -253,6 +266,8 @@ Coordinate *Read_Ads7846(void)
   static Coordinate  screen;
   int m0,m1,m2,TP_X[1],TP_Y[1],temp[3];
   uint8_t count=0;
+
+  Clear_SPI1();
   int buffer[2][9]={{0},{0}};  /* ���X��Y���ж�β��� */
   do					       /* ѭ������9�� */
   {		   
