@@ -33,6 +33,7 @@ void get_metadata(u16_t CpBytes, int *DataCounter);
 
 #if LWIP_NETCONN
 
+extern xQueueHandle xListBoxQueue;
 extern xTaskHandle xVsTskHandle;
 extern xSemaphoreHandle xSPI1_Mutex;
 xSemaphoreHandle xDMAch0_Semaphore = NULL;
@@ -46,7 +47,7 @@ unsigned char IPradio_init(void)
 {
 //	xTaskHandle xShoutcastTaskHandle;
 
-	xShoutcastTaskHandle = sys_thread_new("ScastTsk",
+	xShoutcastTaskHandle = sys_thread_new("SHctTsk",
                        shoutcast,
                        NULL,
                        sizeScast,
@@ -69,6 +70,7 @@ void shoutcast(void *pdata) {
 	u8_t cnt, buffering_progress;
 	u16_t CpBytes , BufLen;
 	char *ptr, *ptr_tmp;
+	int8_t StatSel;
 
 	char request_header[REQUEST_HEADER_MAX_LEN];
 	char host_name[HOST_NAME_MAX_LEN];
@@ -77,8 +79,6 @@ void shoutcast(void *pdata) {
 	char flaga = 0;
 	uint32_t buffered_byte, buffer_tresh;
 	PROGBAR_Handle BuffProgBar;
-
-
 
 
 	vSemaphoreCreateBinary(xDMAch0_Semaphore);
@@ -95,12 +95,12 @@ void shoutcast(void *pdata) {
 		// The semaphore was not created
 	}
 
-
-		disp_menu(request_header, host_name, &portserv);
+	if(xQueueReceive(xListBoxQueue, &StatSel, portMAX_DELAY) == pdTRUE);
+	disp_menu(request_header, host_name, &portserv);
 
 	printf("Host name: %s\r\n", host_name);
 	printf("Port number: %d\r\n", portserv);
-	//		printf("Reguest: %s\r\n", request_header);
+	//		printf("Request: %s\r\n", request_header);
 
 	printf("DNS .....\r\n");
 	if ((rc1 = netconn_gethostbyname(host_name, &ipaddrserv)) == ERR_OK) {
@@ -113,7 +113,7 @@ void shoutcast(void *pdata) {
 		PrintERR(rc1);
 	}
 
-	reconnect:
+reconnect:
 
 	NetConn = netconn_new(NETCONN_TCP);
 	netconn_set_recvtimeout(NetConn, 30000);
@@ -128,7 +128,8 @@ void shoutcast(void *pdata) {
 		vTaskDelay(10000 / portTICK_RATE_MS); // wait 10 sec
 	}
 	printf("netcon binded\r\n");
-	connect: rc2 = netconn_connect(NetConn, &ipaddrserv, portserv); /* Adres IP i port serwera */
+connect:
+	rc2 = netconn_connect(NetConn, &ipaddrserv, portserv); /* Adres IP i port serwera */
 
 	if (rc2 != ERR_OK) {
 		printf("Ncon_connect error: ");
@@ -200,6 +201,7 @@ void shoutcast(void *pdata) {
 		}
 		/* Wywietl parametry */
 		printf("%s\r\n", RadioInf.Name);
+		GUI_SetBkColor(GUI_BLUE);
 		GUI_SetFont(&GUI_Font16B_ASCII);
 		GUI_DispStringHCenterAt(RadioInf.Name, 160, 15);
 		GUI_DispNextLine();
@@ -223,9 +225,8 @@ void shoutcast(void *pdata) {
 			GUI_SetColor(GUI_WHITE);
 			GUI_SetFont(&GUI_Font8x16);
 			GUI_DispStringHCenterAt("Buffering...", 160, 120);
-			BuffProgBar = PROGBAR_Create(100, 140, 120, 20, WM_CF_SHOW);
+			BuffProgBar = PROGBAR_CreateEx(100, 140, 120, 20, 0, WM_CF_SHOW, 0, 1);
 			PROGBAR_SetValue(BuffProgBar, 0);
-			WM_Paint(BuffProgBar);
 		}
 
 		while ((rc3 = netconn_recv(NetConn, &inbuf)) == ERR_OK) {
@@ -248,11 +249,10 @@ void shoutcast(void *pdata) {
 				/* Utwórz pasek postępu */
 				GUI_SetFont(&GUI_Font8x16);
 				GUI_DispStringHCenterAt("Buff empty - buffering...", 160, 120);
-				BuffProgBar = PROGBAR_Create(100, 140, 120, 20, WM_CF_SHOW);
+				BuffProgBar = PROGBAR_CreateEx(100, 140, 120, 20, 0, WM_CF_SHOW, 0, 1);
 				PROGBAR_SetBarColor(BuffProgBar, 0, GUI_DARKGRAY);
 				PROGBAR_SetBarColor(BuffProgBar, 1, GUI_LIGHTGRAY);
 				PROGBAR_SetValue(BuffProgBar, 0);
-				WM_Paint(BuffProgBar);
 			}
 
 			switch (RadioInf.Metadata) {
@@ -288,11 +288,11 @@ void shoutcast(void *pdata) {
 					buffering_progress = 100;
 
 				PROGBAR_SetValue(BuffProgBar, buffering_progress);
-				WM_Paint(BuffProgBar);
+
 				if (RAM_buflen() > buffer_tresh && flaga == STOP) { /* Bufor jest pełny */
 					vTaskResume(xVsTskHandle); /* Uruchom zadanie dekodera */
 					flaga = PLAY; /* Ustaw flagę uruchomienia zadania dekodera */
-					/*Usuń pasek postępu */
+//					/*Usuń pasek postępu */
 					PROGBAR_Delete(BuffProgBar);
 					GUI_ClearRect(0, 120, 320, 160);
 				}

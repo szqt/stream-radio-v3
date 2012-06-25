@@ -3,7 +3,7 @@
  * (C) Code Red Technologies Ltd, 2008-2012
  * Generated linker script file for LPC1768
  * Created from redlib_nohost_c (vLPCXpresso v4.1 (5 [Build 219] [12/12/2011] ))
- * By LPCXpresso v4.1.5 [Build 219] [12/12/2011]  on Sun Apr 15 22:22:10 CEST 2012
+ * By LPCXpresso v4.1.5 [Build 219] [12/12/2011]  on Mon Jun 25 11:21:53 CEST 2012
  */
 
 

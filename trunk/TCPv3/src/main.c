@@ -80,10 +80,6 @@ int main()
 {
 	DelayTimer_Config();
 
-//	GUI_Init();
-//	GUI_SetBkColor(GUI_BLACK);
-//	GUI_Clear();
-
 	LED_Config();
 	UART2_Config(115200);
 	ADC_Config();
@@ -111,10 +107,10 @@ int main()
 	if(IPradio_init() != 0){
 		// Could not be initiated
 	}
-	xTaskCreate( vVsTask, ( signed portCHAR * ) "VsTsk", 100, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
-	xTaskCreate( vHeartbeatTask, ( signed portCHAR * ) "HbeatTsk", 400, NULL, 3, &xHeartbeatTskHandle );
+	xTaskCreate( vVsTask, ( signed portCHAR * ) "VSTsk", 150, NULL, 5, &xVsTskHandle );			//wykorzystuje ok 60
+	xTaskCreate( vHeartbeatTask, ( signed portCHAR * ) "GUITsk", 400, NULL, 3, &xHeartbeatTskHandle );
 	xTaskCreate( vTouchPanelTask, ( signed portCHAR * ) "TPTsk", 150, NULL, 3, &xTouchPanelTskHandle );
-	xTaskCreate( vWinMngTask, ( signed portCHAR * ) "WMTsk", 250, NULL, 1, &xWinMngTskHandle );
+	xTaskCreate( vWinMngTask, ( signed portCHAR * ) "WMTsk", 350, NULL, 1, &xWinMngTskHandle );
 	vTaskSuspend(xShoutcastTaskHandle);
 	vTaskSuspend(xVsTskHandle);
 

@@ -52,7 +52,8 @@ void _ExecCalibration(void) {
 		GUI_Delay(100);
 	} while (1);
 	/* Tell user to release */
-	GUI_Clear();
+//	GUI_Clear();
+	GUI_ClearRect(0, 200, 160, 239);
 	GUI_DispStringAt("OK", ax[0] + 20, ay[0]);
 	do {
 		GUI_PID_STATE State;
@@ -64,7 +65,8 @@ void _ExecCalibration(void) {
 	} while (1);
 	/* _Calibrate lower right */
 	GUI_SetBkColor(GUI_RED);
-	GUI_Clear();
+	//GUI_Clear();
+	GUI_ClearRect(0, 220, 120, 239);	// kasuj ok
 	GUI_SetColor(GUI_WHITE);
 	GUI_FillCircle(ax[1], ay[1], 10);
 	GUI_SetColor(GUI_RED);
@@ -87,7 +89,8 @@ void _ExecCalibration(void) {
 	{ /* calculate and display values for configuration file */
 		int x0, x1;
 		int y0, y1;
-		GUI_Clear();
+		//GUI_Clear();
+		GUI_ClearRect(160, 0, 319, 40);	// kasuj ok
 		_Calibrate(GUI_COORD_X, ax[0], ax[1], ax_Phys[0], ax_Phys[1], &x0, &x1);
 		_Calibrate(GUI_COORD_Y, ay[0], ay[1], ay_Phys[0], ay_Phys[1], &y0, &y1);
 		GUI_DispStringAt("x0: ", 0, 0);
@@ -113,4 +116,11 @@ void _ExecCalibration(void) {
 		} while (1);
 	}
 	CalibrationComplete = 1;
+}
+
+void _DefaultCalibration(void){
+	GUI_TOUCH_Calibrate(GUI_COORD_X, AX0, AX1, AX0PHY, AX1PHY);
+	GUI_TOUCH_Calibrate(GUI_COORD_Y, AY0, AY1, AY0PHY, AY1PHY);
+	CalibrationComplete = 1;
+
 }

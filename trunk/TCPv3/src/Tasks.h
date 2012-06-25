@@ -14,4 +14,6 @@ void 			vVsTask(void * pvParameters);
 void 			vTouchPanelTask(void * pvParameters);
 void 			vDHCP_TimerCallback(xTimerHandle pxTimer);
 
+enum GuiState {SELECT, PLAYING};
+
 #endif /* TASKS_H_ */

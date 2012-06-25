@@ -21,12 +21,14 @@ Purpose     : Configures abilities, fonts etc.
 #ifndef GUICONF_H
 #define GUICONF_H
 
-#define GUI_OS                    (0)  /* Compile with multitasking support */
+#define GUI_OS                    (1)  /* Compile with multitasking support */
 #define GUI_SUPPORT_TOUCH         (1)  /* Support a touch screen (req. win-manager) */
 #define GUI_SUPPORT_UNICODE       (1)  /* Support mixed ASCII/UNICODE strings */
 
 #define GUI_DEFAULT_FONT          &GUI_Font6x8
 #define GUI_ALLOC_SIZE            2000  /* Size of dynamic memory ... For WM and memory devices*/
+#define GUI_MT						(1)	/* Enable mulitasking support */
+#define GUI_MAXTASK					5	/* Max. number of tasks that may call uC/GUI */
 
 
 /*********************************************************************
